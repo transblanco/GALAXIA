@@ -1,183 +1,669 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Gestor de KPIs</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Galaxia KPI - Gestor</title>
+
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            darkbg: "#1e1e2f",
-            darkcard: "#2a2a40",
-            accent: "#3b82f6",
-            accentGreen: "#22c55e"
-          }
-        }
-      }
+
+  <style>
+    /* Pequeñas reglas extra para el diseño oscuro */
+    :root {
+      --bg: #0f1724;
+      --card: #111827;
+      --muted: #9ca3af;
+      --accent: #3b82f6;
+      --accent-green: #10b981;
     }
-  </script>
+    body { background: var(--bg); color: #e6eef8; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); }
+    .tag { font-weight:600; font-size:.8rem; padding:.25rem .5rem; border-radius:9999px; color:#fff; display:inline-block; margin-right:6px; margin-bottom:4px; }
+    .small-muted { color:var(--muted); font-size:.85rem; }
+    .row-hover:hover { background: rgba(255,255,255,0.02); cursor:pointer; }
+    /* scrollbar for modals comments */
+    .scroll-y { max-height:220px; overflow-y:auto; }
+  </style>
 </head>
-<body class="bg-darkbg text-gray-100 min-h-screen p-6">
+<body class="min-h-screen">
 
-  <h1 class="text-3xl font-bold mb-6 text-accent">📊 Gestor de KPIs</h1>
+  <div class="max-w-6xl mx-auto p-6">
 
-  <!-- Botón para crear nueva tarea -->
-  <button onclick="abrirModal()" class="bg-accent hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow">
-    ➕ Nueva tarea
-  </button>
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-white">📊 Galaxia KPI — Gestor</h1>
+        <p class="small-muted mt-1">Seguimiento de auditoría — Backus (Galaxia)</p>
+      </div>
 
-  <!-- Tabla de tareas -->
-  <div id="taskTable" class="mt-6"></div>
+      <div class="flex items-center gap-3">
+        <div id="adminBadge" class="hidden px-3 py-1 rounded-full bg-green-600 text-black font-semibold">ADMIN</div>
+        <button id="loginBtn" class="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500">🔑 Ingresar Admin</button>
+        <button id="newTaskBtn" class="px-3 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 hidden">➕ Nueva tarea</button>
+      </div>
+    </header>
 
-  <!-- Modal de creación de tareas -->
-  <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-    <div class="bg-darkcard p-6 rounded-lg shadow-lg w-96">
-      <h2 class="text-xl font-bold mb-4 text-accent">Nueva tarea</h2>
-      <form id="taskForm" class="space-y-3">
-        <input type="text" id="item" placeholder="Item (ej: 1.1.1)" class="w-full border border-gray-600 bg-darkbg p-2 rounded" required>
-        <input type="text" id="titulo" placeholder="Título" class="w-full border border-gray-600 bg-darkbg p-2 rounded" required>
-        
-        <!-- Áreas -->
-        <label class="block">Área(s):</label>
-        <select id="areas" multiple class="w-full border border-gray-600 bg-darkbg p-2 rounded">
-          <option>RRHH</option>
-          <option>Comercial</option>
-          <option>Backus</option>
-          <option>Operaciones</option>
-        </select>
-        
-        <!-- Responsable -->
-        <label class="block">Responsable:</label>
-        <select id="responsable" class="w-full border border-gray-600 bg-darkbg p-2 rounded">
-          <option>Juan Pérez</option>
-          <option>María Gómez</option>
-          <option>Carlos Ruiz</option>
-        </select>
+    <!-- Controls / info -->
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <div class="flex items-center gap-3">
+        <div class="card px-4 py-2 rounded-md small-muted">Tareas guardadas: <span id="countTasks" class="font-semibold text-white ml-2">0</span></div>
+      </div>
+      <div class="small-muted">Conexión: <span id="statusAdmin" class="font-semibold text-white ml-2">Usuario</span></div>
+    </div>
 
-        <!-- Cantidad de niveles -->
-        <label class="block">Cantidad de niveles:</label>
-        <input type="number" id="cantidadNiveles" min="1" max="6" value="3" class="w-full border border-gray-600 bg-darkbg p-2 rounded" onchange="generarCamposNiveles()">
+    <!-- Tabla / Lista -->
+    <section class="card rounded-lg p-4">
+      <div id="taskTable" class="w-full overflow-x-auto"></div>
+    </section>
+  </div>
 
-        <!-- Inputs dinámicos para niveles -->
-        <div id="nivelesContainer" class="space-y-2"></div>
+  <!-- MODAL: Crear / Editar Tarea -->
+  <div id="createModal" class="fixed inset-0 hidden items-center justify-center z-50">
+    <div class="absolute inset-0 bg-black/60"></div>
+    <div class="relative max-w-3xl w-full mx-4 card rounded-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 id="createTitle" class="text-xl font-bold">➕ Nueva tarea</h2>
+        <button class="text-gray-300" onclick="closeCreateModal()">✕</button>
+      </div>
 
-        <!-- Carpeta Drive -->
-        <input type="text" id="carpetaDrive" placeholder="Link Carpeta Drive" class="w-full border border-gray-600 bg-darkbg p-2 rounded">
+      <form id="createForm" class="grid grid-cols-1 gap-3">
+        <div class="grid grid-cols-3 gap-3">
+          <input id="inputItem" class="col-span-1 p-2 rounded bg-transparent border border-zinc-700" placeholder="Item (ej: 1.1.1)" required>
+          <input id="inputTitulo" class="col-span-2 p-2 rounded bg-transparent border border-zinc-700" placeholder="Título de la tarea" required>
+        </div>
 
-        <!-- Imagen KPI -->
-        <label class="block">Imagen KPI (URL):</label>
-        <input type="text" id="imagenKpi" placeholder="https://ejemplo.com/kpi.png" class="w-full border border-gray-600 bg-darkbg p-2 rounded">
+        <div class="grid grid-cols-3 gap-3">
+          <!-- Areas select + nuevo -->
+          <div class="col-span-1">
+            <label class="small-muted mb-1 block">Áreas (Ctrl/Shift para mult)</label>
+            <select id="selectAreas" multiple class="w-full p-2 rounded bg-transparent border border-zinc-700"></select>
+          </div>
+          <div class="col-span-1 flex items-end gap-2">
+            <button type="button" class="px-3 py-2 bg-indigo-600 rounded" onclick="openAddModal('area')">➕ Nueva Área</button>
+          </div>
 
-        <div class="flex gap-2">
-          <button type="submit" class="bg-accentGreen hover:bg-green-700 text-white px-4 py-2 rounded w-full">Guardar</button>
-          <button type="button" onclick="cerrarModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded w-full">Cancelar</button>
+          <!-- Responsable select + nuevo -->
+          <div class="col-span-1">
+            <label class="small-muted mb-1 block">Responsable</label>
+            <select id="selectResp" class="w-full p-2 rounded bg-transparent border border-zinc-700"></select>
+          </div>
+          <div class="col-span-1 flex items-end gap-2">
+            <button type="button" class="px-3 py-2 bg-indigo-600 rounded" onclick="openAddModal('responsable')">➕ Nuevo</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="small-muted block mb-1">Cantidad de niveles</label>
+            <input id="inputCantidadNiv" type="number" min="1" max="6" value="3" class="p-2 rounded bg-transparent border border-zinc-700" onchange="renderNivelInputs()">
+          </div>
+          <div>
+            <label class="small-muted block mb-1">% Avance inicial (solo admin)</label>
+            <input id="inputAvance" type="number" min="0" max="100" value="0" class="p-2 rounded bg-transparent border border-zinc-700">
+          </div>
+          <div>
+            <label class="small-muted block mb-1">Carpeta Drive</label>
+            <input id="inputDrive" type="url" placeholder="https://drive.google.com/..." class="p-2 rounded bg-transparent border border-zinc-700">
+          </div>
+        </div>
+
+        <div>
+          <label class="small-muted block mb-1">Metas por nivel (texto libre, ej. 80%)</label>
+          <div id="nivelesInputs" class="grid gap-2"></div>
+        </div>
+
+        <div>
+          <label class="small-muted block mb-1">Imagen KPI (URL)</label>
+          <input id="inputImagen" type="url" placeholder="https://..." class="p-2 rounded bg-transparent border border-zinc-700">
+        </div>
+
+        <div class="flex gap-2 justify-end mt-2">
+          <button type="button" class="px-4 py-2 rounded bg-zinc-600 hover:bg-zinc-500" onclick="closeCreateModal()">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400">Guardar tarea</button>
         </div>
       </form>
     </div>
   </div>
 
-  <script>
-    let tareas = [];
+  <!-- MODAL: AGREGAR NUEVA AREA / RESPONSABLE -->
+  <div id="addModal" class="fixed inset-0 hidden items-center justify-center z-50">
+    <div class="absolute inset-0 bg-black/60"></div>
+    <div class="relative max-w-md w-full mx-4 card rounded-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="addTitle" class="text-lg font-bold">➕ Nuevo</h3>
+        <button class="text-gray-300" onclick="closeAddModal()">✕</button>
+      </div>
 
-    // Abrir modal
-    function abrirModal() {
-      document.getElementById('taskModal').classList.remove('hidden');
-      generarCamposNiveles();
-    }
+      <div class="grid gap-3">
+        <input id="addInput" class="p-2 rounded bg-transparent border border-zinc-700" placeholder="Nombre...">
+        <div class="flex justify-end gap-2">
+          <button class="px-4 py-2 rounded bg-zinc-600" onclick="closeAddModal()">Cancelar</button>
+          <button class="px-4 py-2 rounded bg-indigo-600" onclick="saveAdd()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    // Cerrar modal
-    function cerrarModal() {
-      document.getElementById('taskModal').classList.add('hidden');
-      document.getElementById('taskForm').reset();
-      document.getElementById('nivelesContainer').innerHTML = "";
-    }
+  <!-- MODAL: Detalle tarea -->
+  <div id="detailModal" class="fixed inset-0 hidden items-center justify-center z-50">
+    <div class="absolute inset-0 bg-black/60"></div>
+    <div class="relative max-w-3xl w-full mx-4 card rounded-lg p-6">
+      <div class="flex justify-between items-start gap-4">
+        <div>
+          <h2 id="detailTitle" class="text-2xl font-bold"></h2>
+          <p class="small-muted" id="detailItem"></p>
+          <div id="detailAreas" class="mt-2"></div>
+        </div>
+        <div class="flex gap-2">
+          <button id="editSaveBtn" class="hidden px-3 py-1 rounded bg-emerald-500">Guardar cambios</button>
+          <button class="px-3 py-1 rounded bg-zinc-600" onclick="closeDetailModal()">Cerrar</button>
+        </div>
+      </div>
 
-    // Generar inputs dinámicos de niveles
-    function generarCamposNiveles() {
-      const cantidad = document.getElementById('cantidadNiveles').value;
-      const container = document.getElementById('nivelesContainer');
-      container.innerHTML = "";
-      for (let i = 1; i <= cantidad; i++) {
-        container.innerHTML += `
-          <input type="text" id="nivel_${i}" placeholder="Meta Nivel ${i} (ej: 80%)" class="w-full border border-gray-600 bg-darkbg p-2 rounded">
-        `;
+      <div class="grid md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <p class="small-muted">Responsable</p>
+          <p id="detailResp" class="font-semibold"></p>
+
+          <p class="small-muted mt-3">Niveles de cumplimiento</p>
+          <ul id="detailNiveles" class="mt-2"></ul>
+
+          <p class="small-muted mt-3">% Avance</p>
+          <div class="flex items-center gap-3 mt-1">
+            <div class="w-full bg-zinc-800 h-4 rounded overflow-hidden">
+              <div id="detailProgressBar" class="h-4 bg-emerald-500" style="width:0%"></div>
+            </div>
+            <div id="avanceDisplay" class="font-semibold">0%</div>
+          </div>
+
+          <div id="avanceEditWrap" class="mt-2 hidden">
+            <label class="small-muted">Editar % Avance</label>
+            <input id="avanceEdit" type="number" min="0" max="100" class="p-2 mt-1 w-32 rounded bg-transparent border border-zinc-700">
+          </div>
+
+          <p class="small-muted mt-4">Carpeta Drive</p>
+          <a id="detailDrive" class="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">Abrir Carpeta</a>
+
+          <div class="mt-4">
+            <p class="small-muted">Comentarios</p>
+            <ul id="detailComentarios" class="mt-2 scroll-y"></ul>
+
+            <div class="flex gap-2 mt-2">
+              <input id="comentarioText" placeholder="Agregar comentario..." class="p-2 rounded bg-transparent border border-zinc-700 flex-1">
+              <button class="px-3 py-2 rounded bg-indigo-600" onclick="addComment()">Comentar</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="small-muted">Imagen KPI</p>
+          <div class="mt-2 card p-3 rounded">
+            <img id="detailImagen" src="" alt="Imagen KPI" class="w-full object-contain rounded" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* -----------------------------
+   STORAGE KEYS & DEFAULT DATA
+   ----------------------------- */
+const KEY_TASKS = 'galaxia_tasks_v1';
+const KEY_AREAS = 'galaxia_areas_v1';
+const KEY_RESPS = 'galaxia_resps_v1';
+const KEY_AREA_COLORS = 'galaxia_area_colors_v1';
+
+let admin = false;
+let tasks = [];
+let areas = [];
+let respons = [];
+let areaColors = {}; // mapping area -> color
+
+// default palettes and mappings
+const defaultAreaColors = {
+  'RRHH': '#3b82f6',       // blue
+  'Comercial': '#10b981',  // green
+  'Backus': '#f59e0b',     // amber
+  'Operaciones': '#ef4444' // red
+};
+const palette = ['#06b6d4','#7c3aed','#ef4444','#f97316','#14b8a6','#0ea5e9','#a3e635','#f43f5e'];
+
+/* -----------------------------
+   UTIL: load & save
+   ----------------------------- */
+function loadState(){
+  try {
+    tasks = JSON.parse(localStorage.getItem(KEY_TASKS)) || [];
+  } catch(e){ tasks = []; }
+  try {
+    areas = JSON.parse(localStorage.getItem(KEY_AREAS)) || Object.keys(defaultAreaColors);
+  } catch(e){ areas = Object.keys(defaultAreaColors); }
+  try {
+    respons = JSON.parse(localStorage.getItem(KEY_RESPS)) || ['Juan Pérez','María López'];
+  } catch(e){ respons = ['Juan Pérez','María López']; }
+  try {
+    areaColors = JSON.parse(localStorage.getItem(KEY_AREA_COLORS)) || defaultAreaColors;
+  } catch(e){ areaColors = defaultAreaColors; }
+
+  // ensure each area in areas has a color
+  areas.forEach(a => {
+    if(!areaColors[a]) assignColorToArea(a);
+  });
+}
+
+function saveState(){
+  localStorage.setItem(KEY_TASKS, JSON.stringify(tasks));
+  localStorage.setItem(KEY_AREAS, JSON.stringify(areas));
+  localStorage.setItem(KEY_RESPS, JSON.stringify(respons));
+  localStorage.setItem(KEY_AREA_COLORS, JSON.stringify(areaColors));
+}
+
+/* -----------------------------
+   COLOR helpers
+   ----------------------------- */
+function assignColorToArea(area){
+  // pick a color not yet used, else random from palette
+  const used = new Set(Object.values(areaColors));
+  let pick = palette.find(c => !used.has(c));
+  if(!pick) pick = palette[Math.floor(Math.random()*palette.length)];
+  areaColors[area] = pick;
+  saveState();
+  return pick;
+}
+
+function getAreaColor(area){
+  if(areaColors[area]) return areaColors[area];
+  return assignColorToArea(area);
+}
+
+/* -----------------------------
+   RENDER: Table
+   ----------------------------- */
+function compareItems(a,b){
+  if(!a) return 1;
+  if(!b) return -1;
+  const pa = (a+'').split('.').map(x=>parseInt(x)||0);
+  const pb = (b+'').split('.').map(x=>parseInt(x)||0);
+  for(let i=0;i<Math.max(pa.length,pb.length);i++){
+    if((pa[i]||0) < (pb[i]||0)) return -1;
+    if((pa[i]||0) > (pb[i]||0)) return 1;
+  }
+  return 0;
+}
+
+function renderTable(){
+  // sort copy
+  const arr = [...tasks].sort((x,y)=>compareItems(x.item,y.item));
+  document.getElementById('countTasks').innerText = arr.length;
+
+  if(arr.length === 0){
+    document.getElementById('taskTable').innerHTML = `
+      <div class="p-8 text-center small-muted">No hay tareas. ${ admin ? 'Crea una con ➕ Nueva tarea' : 'Pide a un administrador crear una tarea.' }</div>
+    `;
+    return;
+  }
+
+  let html = `<table class="w-full text-left"><thead>
+    <tr class="text-zinc-400 text-sm">
+      <th class="p-3">Item</th>
+      <th class="p-3">Título</th>
+      <th class="p-3">Áreas</th>
+      <th class="p-3">Responsable</th>
+      <th class="p-3">% Avance</th>
+      <th class="p-3">Carpeta</th>
+    </tr></thead><tbody class="space-y-2">`;
+
+  arr.forEach((t, idx) => {
+    // row uses original index from tasks array
+    const realIndex = tasks.indexOf(t);
+    const areasHtml = t.areas.map(a => {
+      const c = getAreaColor(a);
+      return `<span class="tag" style="background:${c}">${escapeHtml(a)}</span>`;
+    }).join(' ');
+
+    html += `
+      <tr class="row-hover" onclick="openDetail(${realIndex})">
+        <td class="p-3 align-top"><div class="font-semibold">${escapeHtml(t.item)}</div></td>
+        <td class="p-3 align-top"><div class="font-medium">${escapeHtml(t.titulo)}</div></td>
+        <td class="p-3 align-top">${areasHtml}</td>
+        <td class="p-3 align-top">${escapeHtml(t.responsable)}</td>
+        <td class="p-3 align-top"><div class="font-semibold">${(t.avance||0)}%</div></td>
+        <td class="p-3 align-top"><a class="text-indigo-400 hover:underline" href="${escapeAttr(t.carpetaDrive||'#')}" target="_blank">📂 Abrir</a></td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table>`;
+  document.getElementById('taskTable').innerHTML = html;
+}
+
+/* -----------------------------
+   CREATE modal logic
+   ----------------------------- */
+function openCreateModal(){
+  if(!admin){
+    alert('Solo admin puede crear tareas. Inicia sesión con el código.');
+    return;
+  }
+  document.getElementById('createTitle').innerText = '➕ Nueva tarea';
+  // reset form
+  document.getElementById('createForm').reset();
+  renderAreasAndResps();
+  renderNivelInputs();
+  document.getElementById('createModal').classList.remove('hidden');
+}
+
+function closeCreateModal(){
+  document.getElementById('createModal').classList.add('hidden');
+}
+
+function renderAreasAndResps(){
+  const selA = document.getElementById('selectAreas'); selA.innerHTML = '';
+  areas.forEach(a => {
+    const opt = document.createElement('option'); opt.value = a; opt.textContent = a; selA.appendChild(opt);
+  });
+  const selR = document.getElementById('selectResp'); selR.innerHTML = '';
+  respons.forEach(r => {
+    const opt = document.createElement('option'); opt.value = r; opt.textContent = r; selR.appendChild(opt);
+  });
+}
+
+function renderNivelInputs(){
+  const cnt = document.getElementById('nivelesInputs');
+  cnt.innerHTML = '';
+  const how = parseInt(document.getElementById('inputCantidadNiv').value)||1;
+  for(let i=1;i<=how;i++){
+    const el = document.createElement('input');
+    el.className = 'p-2 rounded bg-transparent border border-zinc-700';
+    el.placeholder = `Meta Nivel ${i} (ej: 80%)`;
+    el.id = `meta_nivel_${i}`;
+    cnt.appendChild(el);
+  }
+}
+
+document.getElementById('createForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  if(!admin){
+    alert('Solo admin puede crear tareas.');
+    return;
+  }
+  const item = document.getElementById('inputItem').value.trim();
+  const titulo = document.getElementById('inputTitulo').value.trim();
+  const seleccion = Array.from(document.getElementById('selectAreas').selectedOptions).map(o=>o.value);
+  const responsable = document.getElementById('selectResp').value;
+  const cantidad = parseInt(document.getElementById('inputCantidadNiv').value)||1;
+  const metas = [];
+  for(let i=1;i<=cantidad;i++){
+    const val = (document.getElementById(`meta_nivel_${i}`) || {value:''}).value.trim();
+    metas.push({nivel:i, meta: val, checked:false});
+  }
+  const avance = parseInt(document.getElementById('inputAvance').value) || 0;
+  const carpetaDrive = document.getElementById('inputDrive').value.trim();
+  const imagenKpi = document.getElementById('inputImagen').value.trim();
+
+  // basic validation
+  if(!item || !titulo){ alert('Item y Título son obligatorios'); return; }
+  const newTask = {
+    item, titulo,
+    areas: seleccion.length ? seleccion : ['Sin Área'],
+    responsable: responsable || 'Sin responsable',
+    niveles: metas,
+    avance: avance,
+    carpetaDrive: carpetaDrive,
+    imagenKpi: imagenKpi,
+    comentarios: []
+  };
+  tasks.push(newTask);
+  saveState();
+  renderTable();
+  closeCreateModal();
+});
+
+/* -----------------------------
+   DETAIL modal logic
+   ----------------------------- */
+let currentIndex = null;
+
+function openDetail(idx){
+  currentIndex = idx;
+  const t = tasks[idx];
+  if(!t) return;
+  document.getElementById('detailTitle').innerText = t.titulo;
+  document.getElementById('detailItem').innerText = `Item: ${t.item}`;
+  // areas
+  const areasWrap = document.getElementById('detailAreas');
+  areasWrap.innerHTML = '';
+  t.areas.forEach(a => {
+    const span = document.createElement('span');
+    span.className = 'tag';
+    span.style.background = getAreaColor(a);
+    span.innerText = a;
+    areasWrap.appendChild(span);
+  });
+
+  document.getElementById('detailResp').innerText = t.responsable || '—';
+  // niveles
+  const nivelesUL = document.getElementById('detailNiveles');
+  nivelesUL.innerHTML = '';
+  t.niveles.forEach((n, i) => {
+    const li = document.createElement('li');
+    li.className = 'flex items-center gap-3 py-1';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.checked = !!n.checked;
+    chk.disabled = !admin;
+    chk.addEventListener('change', () => {
+      if(!admin){ chk.checked = !chk.checked; alert('Solo admin puede cambiar niveles'); return; }
+      n.checked = chk.checked;
+      // si meta contiene porcentaje, actualizar avance automáticamente
+      const parsed = parseInt((n.meta||'').replace('%','').match(/\d+/));
+      if(chk.checked && !isNaN(parsed)){
+        t.avance = parsed;
+      } else {
+        // si se desmarca, no forzamos avance a 0; admin puede editar manualmente
       }
-    }
-
-    // Guardar tarea
-    document.getElementById('taskForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-
-      const item = document.getElementById('item').value;
-      const titulo = document.getElementById('titulo').value;
-      const areas = Array.from(document.getElementById('areas').selectedOptions).map(opt => opt.value);
-      const responsable = document.getElementById('responsable').value;
-      const carpetaDrive = document.getElementById('carpetaDrive').value;
-      const imagenKpi = document.getElementById('imagenKpi').value;
-
-      const cantidadNiveles = document.getElementById('cantidadNiveles').value;
-      let niveles = [];
-      for (let i = 1; i <= cantidadNiveles; i++) {
-        niveles.push({ nivel: i, meta: document.getElementById(`nivel_${i}`).value });
-      }
-
-      const nuevaTarea = { item, titulo, areas, responsable, niveles, carpetaDrive, imagenKpi, comentarios: [] };
-      tareas.push(nuevaTarea);
-
-      // Ordenar por item
-      tareas.sort((a, b) => compararItems(a.item, b.item));
-
-      renderTasks();
-      cerrarModal();
+      saveState(); renderTable(); updateDetailProgress(t);
     });
+    const spanMeta = document.createElement('span');
+    spanMeta.className = 'ml-2';
+    spanMeta.innerHTML = `<strong>Nivel ${n.nivel}</strong> — ${escapeHtml(n.meta||'—')}`;
+    li.appendChild(chk);
+    li.appendChild(spanMeta);
+    nivelesUL.appendChild(li);
+  });
 
-    // Comparar items tipo 1.1.2
-    function compararItems(a, b) {
-      const pa = a.split('.').map(Number);
-      const pb = b.split('.').map(Number);
-      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-        if ((pa[i] || 0) < (pb[i] || 0)) return -1;
-        if ((pa[i] || 0) > (pb[i] || 0)) return 1;
-      }
-      return 0;
-    }
+  // avance visual
+  updateDetailProgress(t);
+  // show/hide edit controls
+  document.getElementById('avanceEditWrap').style.display = admin ? 'block' : 'none';
+  document.getElementById('avanceEdit').value = t.avance || 0;
+  document.getElementById('detailDrive').href = t.carpetaDrive || '#';
+  document.getElementById('detailDrive').innerText = t.carpetaDrive ? 'Abrir carpeta' : '—';
+  // comments
+  renderComments(t);
 
-    // Renderizar tabla
-    function renderTasks() {
-      let html = `
-        <table class="w-full bg-darkcard rounded shadow">
-          <thead>
-            <tr class="bg-gray-800 text-left">
-              <th class="p-2">Item</th>
-              <th class="p-2">Título</th>
-              <th class="p-2">Áreas</th>
-              <th class="p-2">Responsable</th>
-              <th class="p-2">Niveles</th>
-              <th class="p-2">Carpeta</th>
-              <th class="p-2">Imagen</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
-      tareas.forEach(t => {
-        html += `
-          <tr class="border-t border-gray-700 hover:bg-gray-700">
-            <td class="p-2">${t.item}</td>
-            <td class="p-2">${t.titulo}</td>
-            <td class="p-2">${t.areas.join(", ")}</td>
-            <td class="p-2">${t.responsable}</td>
-            <td class="p-2">${t.niveles.map(n => `${n.nivel}:${n.meta}`).join(", ")}</td>
-            <td class="p-2"><a href="${t.carpetaDrive}" target="_blank" class="text-accent">📂 Abrir</a></td>
-            <td class="p-2">${t.imagenKpi ? `<img src="${t.imagenKpi}" alt="KPI" class="h-12 rounded">` : "—"}</td>
-          </tr>
-        `;
-      });
-      html += "</tbody></table>";
-      document.getElementById('taskTable').innerHTML = html;
+  // imagen
+  const img = document.getElementById('detailImagen');
+  if(t.imagenKpi){
+    img.src = t.imagenKpi;
+    img.alt = 'Imagen KPI';
+  } else {
+    img.src = 'https://via.placeholder.com/800x400.png?text=Sin+imagen';
+    img.alt = 'Sin imagen';
+  }
+
+  // show edit/save btn for admin
+  document.getElementById('editSaveBtn').style.display = admin ? 'inline-block' : 'none';
+  document.getElementById('detailModal').classList.remove('hidden');
+
+  // edit save button action
+  document.getElementById('editSaveBtn').onclick = function(){
+    if(!admin){ alert('Solo admin puede guardar cambios'); return; }
+    const newAv = parseInt(document.getElementById('avanceEdit').value) || 0;
+    t.avance = Math.min(100, Math.max(0, newAv));
+    // niveles' checkboxes are already updated live
+    saveState();
+    renderTable();
+    updateDetailProgress(t);
+    alert('Cambios guardados ✅');
+  };
+}
+
+function updateDetailProgress(t){
+  const bar = document.getElementById('detailProgressBar');
+  const display = document.getElementById('avanceDisplay');
+  const value = t.avance || 0;
+  bar.style.width = value + '%';
+  display.innerText = value + '%';
+}
+
+/* -----------------------------
+   COMMENTS
+   ----------------------------- */
+function renderComments(t){
+  const ul = document.getElementById('detailComentarios'); ul.innerHTML = '';
+  (t.comentarios || []).slice().reverse().forEach(c => {
+    const li = document.createElement('li');
+    li.className = 'mb-2 p-2 bg-zinc-800 rounded';
+    const ts = new Date(c.ts || Date.now()).toLocaleString();
+    li.innerHTML = `<div class="small-muted text-xs">${escapeHtml(ts)}</div><div class="mt-1">${escapeHtml(c.text)}</div>`;
+    ul.appendChild(li);
+  });
+}
+
+function addComment(){
+  const txt = document.getElementById('comentarioText').value.trim();
+  if(!txt) return;
+  const t = tasks[currentIndex];
+  if(!t) return;
+  t.comentarios = t.comentarios || [];
+  t.comentarios.push({ text: txt, ts: Date.now() });
+  saveState();
+  renderComments(t);
+  document.getElementById('comentarioText').value = '';
+  renderTable();
+}
+
+/* -----------------------------
+   ADD AREA / RESPONSABLE modal
+   ----------------------------- */
+let addMode = ''; // 'area' or 'responsable'
+
+function openAddModal(mode){
+  addMode = mode;
+  document.getElementById('addTitle').innerText = mode === 'area' ? '➕ Nueva Área' : '➕ Nuevo Responsable';
+  document.getElementById('addInput').value = '';
+  document.getElementById('addModal').classList.remove('hidden');
+}
+
+function closeAddModal(){ document.getElementById('addModal').classList.add('hidden'); }
+
+function saveAdd(){
+  const value = (document.getElementById('addInput').value || '').trim();
+  if(!value) return alert('Ingrese nombre válido');
+  if(addMode === 'area'){
+    if(!areas.includes(value)) areas.push(value);
+    if(!areaColors[value]) assignColorToArea(value);
+  } else {
+    if(!respons.includes(value)) respons.push(value);
+  }
+  saveState();
+  renderAreasAndResps();
+  closeAddModal();
+}
+
+/* -----------------------------
+   ADMIN LOGIN
+   ----------------------------- */
+document.getElementById('loginBtn').addEventListener('click', () => {
+  const code = prompt('Ingrese código de administrador:');
+  if(code === 'william.oliva'){
+    admin = true;
+    document.getElementById('adminBadge').classList.remove('hidden');
+    document.getElementById('newTaskBtn').classList.remove('hidden');
+    document.getElementById('statusAdmin').innerText = 'ADMIN';
+    document.getElementById('loginBtn').innerText = 'Cerrar sesión';
+    alert('Acceso concedido ✅');
+    renderTable();
+  } else if(code === null){
+    // cancel
+  } else {
+    alert('Código incorrecto ❌');
+  }
+});
+
+// logout if click again when admin
+document.getElementById('loginBtn').addEventListener('click', function(ev){
+  if(admin && this.innerText === 'Cerrar sesión'){
+    if(confirm('¿Cerrar sesión de admin?')){
+      admin = false;
+      document.getElementById('adminBadge').classList.add('hidden');
+      document.getElementById('newTaskBtn').classList.add('hidden');
+      document.getElementById('statusAdmin').innerText = 'Usuario';
+      this.innerText = '🔑 Ingresar Admin';
+      renderTable();
     }
-  </script>
+  }
+});
+
+/* -----------------------------
+   Open / Close detail modal
+   ----------------------------- */
+function closeDetailModal(){
+  currentIndex = null;
+  document.getElementById('detailModal').classList.add('hidden');
+}
+
+/* -----------------------------
+   Helpers & Safe escape
+   ----------------------------- */
+function escapeHtml(str){
+  if(!str && str !== 0) return '';
+  return String(str)
+    .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+}
+function escapeAttr(s){ return escapeHtml(s||''); }
+
+/* -----------------------------
+   Buttons mapping
+   ----------------------------- */
+document.getElementById('newTaskBtn').addEventListener('click', openCreateModal);
+document.getElementById('newTaskBtn').addEventListener('keydown', (e)=>{ if(e.key==='Enter') openCreateModal(); });
+
+/* -----------------------------
+   INIT: load default sample (if empty)
+   ----------------------------- */
+function initDemoIfEmpty(){
+  if(tasks.length === 0){
+    tasks.push({
+      item: '1.1.1',
+      titulo: 'Cumplimiento cobertura PDV',
+      areas: ['Comercial','Backus'],
+      responsable: 'Juan Pérez',
+      niveles: [
+        {nivel:1, meta:'80%', checked:true},
+        {nivel:2, meta:'90%', checked:false},
+        {nivel:3, meta:'95%', checked:false}
+      ],
+      avance: 80,
+      carpetaDrive: 'https://drive.google.com/',
+      imagenKpi: 'https://via.placeholder.com/800x400.png?text=KPI+Ejemplo',
+      comentarios: [{text:'Evidencia subida en Drive', ts: Date.now()-86400000}]
+    });
+  }
+}
+
+function boot(){
+  loadState();
+  initDemoIfEmpty();
+  renderAreasAndResps();
+  renderTable();
+  saveState();
+}
+boot();
+
+</script>
 </body>
 </html>
-
