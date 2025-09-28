@@ -17,20 +17,13 @@
     .Operaciones { background:#e84118; }
     .btn { background:#0097e6; color:#fff; padding:6px 12px; text-decoration:none; border-radius:6px; font-size:0.9em; cursor:pointer; }
     .btn:hover { background:#40739e; }
-    /* Modal */
-    .modal { display:none; position:fixed; z-index:10; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); }
-    .modal-content { background:#fff; margin:5% auto; padding:20px; border-radius:8px; width:80%; max-width:700px; }
-    .close { float:right; font-size:20px; cursor:pointer; }
-    .progress { background:#eee; border-radius:6px; overflow:hidden; height:20px; margin:10px 0; }
-    .progress-bar { background:#44bd32; height:100%; text-align:center; color:#fff; font-size:0.8em; }
-    .niveles { list-style:none; padding:0; }
-    .niveles li { margin:5px 0; }
-    .comentarios { margin-top:15px; }
-    .comentarios ul { list-style:none; padding:0; }
-    .comentarios li { background:#f1f2f6; padding:6px; border-radius:6px; margin:5px 0; }
-    /* Formulario */
     #formNuevaTarea { display:none; width:90%; margin:20px auto; background:#fff; padding:20px; border-radius:8px; }
     #formNuevaTarea input, #formNuevaTarea select { width:100%; margin:5px 0; padding:8px; }
+    .inline { display:flex; gap:8px; align-items:center; }
+    /* Modal genérico */
+    .modal { display:none; position:fixed; z-index:10; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); }
+    .modal-content { background:#fff; margin:10% auto; padding:20px; border-radius:8px; width:80%; max-width:400px; }
+    .close { float:right; font-size:20px; cursor:pointer; }
   </style>
 </head>
 <body>
@@ -54,45 +47,39 @@
     <h3>Nueva Tarea</h3>
     <input type="text" id="nuevoTitulo" placeholder="Título">
     <input type="text" id="nuevoItem" placeholder="Item">
-    <input type="text" id="nuevoAreas" placeholder="Áreas (separadas por coma)">
-    <input type="text" id="nuevoResponsable" placeholder="Responsable">
+
+    <div class="inline">
+      <select id="nuevoAreas" multiple></select>
+      <button class="btn" onclick="abrirModal('area')">➕ Nuevo</button>
+    </div>
+
+    <div class="inline">
+      <select id="nuevoResponsable"></select>
+      <button class="btn" onclick="abrirModal('responsable')">➕ Nuevo</button>
+    </div>
+
     <input type="number" id="nuevoAvance" placeholder="% Avance inicial">
     <input type="text" id="nuevoDrive" placeholder="Link Carpeta Drive">
     <input type="text" id="nuevoImagen" placeholder="URL Imagen KPI">
     <button class="btn" onclick="crearTarea()">Guardar Tarea</button>
   </div>
 
-  <!-- Modal Detalle -->
-  <div id="modal" class="modal">
+  <!-- Modal Agregar Nuevo -->
+  <div id="modalNuevo" class="modal">
     <div class="modal-content">
-      <span class="close" onclick="cerrarModal()">&times;</span>
-      <h2 id="titulo"></h2>
-      <p><b>Áreas:</b> <span id="area"></span></p>
-      <p><b>Responsable:</b> <span id="responsable"></span></p>
-
-      <h3>Niveles de cumplimiento</h3>
-      <ul class="niveles" id="niveles"></ul>
-
-      <div class="progress">
-        <div class="progress-bar" id="avance"></div>
-      </div>
-
-      <p><a id="driveLink" class="btn" target="_blank">📂 Abrir Carpeta Drive</a></p>
-
-      <h3>Imagen KPI</h3>
-      <img id="imagen" src="" alt="KPI" style="width:100%; border:1px solid #ccc; border-radius:6px;">
-
-      <div class="comentarios">
-        <h3>Comentarios</h3>
-        <ul id="listaComentarios"></ul>
-        <input type="text" id="comentarioInput" placeholder="Escribe un comentario..." style="width:80%;">
-        <button onclick="agregarComentario()">Agregar</button>
-      </div>
+      <span class="close" onclick="cerrarModalNuevo()">&times;</span>
+      <h3 id="modalTitulo"></h3>
+      <input type="text" id="nuevoNombre" placeholder="Escriba nombre">
+      <button class="btn" onclick="guardarNuevo()">Guardar</button>
     </div>
   </div>
 
   <script>
     let admin = false;
+    let tipoActual = "";
+    let listaAreas = ["Comercial","Backus","RRHH","Operaciones"];
+    let listaResponsables = ["Juan Pérez","María López"];
+
     const tareas = [
       {
         titulo: "Cumplimiento de puntos de venta",
@@ -104,17 +91,6 @@
         drive: "https://drive.google.com/",
         imagen: "https://via.placeholder.com/600x200.png?text=KPI+Comercial",
         comentarios: []
-      },
-      {
-        titulo: "KPI de distribución 2025",
-        item: "Auditoría",
-        areas: ["Backus","Operaciones"],
-        responsable: "María López",
-        niveles: ["Nivel 1 ✅", "Nivel 2 ✅", "Nivel 3 ⬜", "Nivel 4 ⬜"],
-        avance: 55,
-        drive: "https://drive.google.com/",
-        imagen: "https://via.placeholder.com/600x200.png?text=KPI+Backus",
-        comentarios: []
       }
     ];
 
@@ -123,11 +99,8 @@
       tbody.innerHTML = "";
       tareas.forEach((tarea, index) => {
         const tr = document.createElement("tr");
-        tr.onclick = () => abrirModal(index);
-
-        const areasHTML = tarea.areas.map(a => `<span class="area-tag ${a}">${a}</span>`).join(" ");
         tr.innerHTML = `
-          <td>${areasHTML}</td>
+          <td>${tarea.areas.map(a=>`<span class="area-tag ${a}">${a}</span>`).join(" ")}</td>
           <td>${tarea.item}</td>
           <td>${tarea.titulo}</td>
           <td>${tarea.niveles.join(" | ")}</td>
@@ -139,50 +112,24 @@
       });
     }
 
-    function abrirModal(index) {
-      const tarea = tareas[index];
-      document.getElementById("titulo").innerText = tarea.titulo;
-      document.getElementById("area").innerHTML = tarea.areas.map(a => `<span class="area-tag ${a}">${a}</span>`).join(" ");
-      document.getElementById("responsable").innerText = tarea.responsable;
-
-      const nivelesUl = document.getElementById("niveles");
-      nivelesUl.innerHTML = "";
-      tarea.niveles.forEach(n => {
-        const li = document.createElement("li");
-        li.innerText = n;
-        nivelesUl.appendChild(li);
+    function renderSelects() {
+      const selAreas = document.getElementById("nuevoAreas");
+      selAreas.innerHTML = "";
+      listaAreas.forEach(a=>{
+        const opt = document.createElement("option");
+        opt.value = a;
+        opt.textContent = a;
+        selAreas.appendChild(opt);
       });
 
-      const avance = document.getElementById("avance");
-      avance.style.width = tarea.avance + "%";
-      avance.innerText = tarea.avance + "%";
-
-      document.getElementById("driveLink").href = tarea.drive;
-      document.getElementById("imagen").src = tarea.imagen;
-
-      const listaComentarios = document.getElementById("listaComentarios");
-      listaComentarios.innerHTML = "";
-      tarea.comentarios.forEach(c => {
-        const li = document.createElement("li");
-        li.innerText = c;
-        listaComentarios.appendChild(li);
+      const selResp = document.getElementById("nuevoResponsable");
+      selResp.innerHTML = "";
+      listaResponsables.forEach(r=>{
+        const opt = document.createElement("option");
+        opt.value = r;
+        opt.textContent = r;
+        selResp.appendChild(opt);
       });
-
-      document.getElementById("modal").style.display = "block";
-    }
-
-    function cerrarModal() {
-      document.getElementById("modal").style.display = "none";
-    }
-
-    function agregarComentario() {
-      const input = document.getElementById("comentarioInput");
-      if (input.value.trim() !== "") {
-        const li = document.createElement("li");
-        li.innerText = input.value;
-        document.getElementById("listaComentarios").appendChild(li);
-        input.value = "";
-      }
     }
 
     function solicitarCodigo() {
@@ -197,27 +144,50 @@
     }
 
     function mostrarFormulario() {
+      renderSelects();
       document.getElementById("formNuevaTarea").style.display = "block";
     }
 
     function crearTarea() {
       const titulo = document.getElementById("nuevoTitulo").value;
       const item = document.getElementById("nuevoItem").value;
-      const areas = document.getElementById("nuevoAreas").value.split(",").map(a=>a.trim());
+      const areas = Array.from(document.getElementById("nuevoAreas").selectedOptions).map(o=>o.value);
       const responsable = document.getElementById("nuevoResponsable").value;
       const avance = parseInt(document.getElementById("nuevoAvance").value) || 0;
       const drive = document.getElementById("nuevoDrive").value;
       const imagen = document.getElementById("nuevoImagen").value || "https://via.placeholder.com/600x200.png?text=KPI";
-
       const niveles = ["Nivel 1 ⬜", "Nivel 2 ⬜", "Nivel 3 ⬜", "Nivel 4 ⬜"];
 
       tareas.push({ titulo, item, areas, responsable, niveles, avance, drive, imagen, comentarios: [] });
-
       renderTabla();
       document.getElementById("formNuevaTarea").style.display = "none";
+    }
+
+    function abrirModal(tipo) {
+      tipoActual = tipo;
+      document.getElementById("modalTitulo").innerText = "Agregar nuevo " + tipo;
+      document.getElementById("nuevoNombre").value = "";
+      document.getElementById("modalNuevo").style.display = "block";
+    }
+
+    function cerrarModalNuevo() {
+      document.getElementById("modalNuevo").style.display = "none";
+    }
+
+    function guardarNuevo() {
+      const nombre = document.getElementById("nuevoNombre").value.trim();
+      if (nombre === "") return;
+      if (tipoActual === "area") {
+        listaAreas.push(nombre);
+      } else if (tipoActual === "responsable") {
+        listaResponsables.push(nombre);
+      }
+      cerrarModalNuevo();
+      renderSelects();
     }
 
     renderTabla();
   </script>
 </body>
 </html>
+
