@@ -2,192 +2,157 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Galaxia KPI</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#f5f6fa; margin:0; padding:0; }
-    header { background:#2f3640; color:#fff; padding:15px; text-align:center; }
-    table { width:90%; margin:20px auto; border-collapse:collapse; background:#fff; }
-    th, td { padding:10px; border-bottom:1px solid #ddd; text-align:left; }
-    th { background:#eee; }
-    .area-tag { padding:4px 8px; border-radius:6px; color:#fff; font-size:0.8em; margin-right:4px; display:inline-block; }
-    .RRHH { background:#487eb0; }
-    .Comercial { background:#4cd137; }
-    .Backus { background:#e1b12c; }
-    .Operaciones { background:#e84118; }
-    .btn { background:#0097e6; color:#fff; padding:6px 12px; text-decoration:none; border-radius:6px; font-size:0.9em; cursor:pointer; }
-    .btn:hover { background:#40739e; }
-    #formNuevaTarea { display:none; width:90%; margin:20px auto; background:#fff; padding:20px; border-radius:8px; }
-    #formNuevaTarea input, #formNuevaTarea select { width:100%; margin:5px 0; padding:8px; }
-    .inline { display:flex; gap:8px; align-items:center; }
-    /* Modal genérico */
-    .modal { display:none; position:fixed; z-index:10; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); }
-    .modal-content { background:#fff; margin:10% auto; padding:20px; border-radius:8px; width:80%; max-width:400px; }
-    .close { float:right; font-size:20px; cursor:pointer; }
-  </style>
+  <title>Gestor de KPIs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <header>
-    <h1>🚀 Tablero Galaxia KPI</h1>
-    <button class="btn" onclick="solicitarCodigo()">🔑 Ingresar como Admin</button>
-    <button id="btnNuevaTarea" class="btn" onclick="mostrarFormulario()" style="display:none;">➕ Nueva tarea</button>
-  </header>
+<body class="bg-gray-100 min-h-screen p-6">
 
-  <table id="tablaTareas">
-    <thead>
-      <tr>
-        <th>Áreas</th><th>Item</th><th>Título</th><th>Niveles</th><th>% Avance</th><th>Responsable</th><th>Carpeta</th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
+  <h1 class="text-3xl font-bold mb-6">📊 Gestor de KPIs</h1>
 
-  <!-- Formulario Nueva Tarea -->
-  <div id="formNuevaTarea">
-    <h3>Nueva Tarea</h3>
-    <input type="text" id="nuevoTitulo" placeholder="Título">
-    <input type="text" id="nuevoItem" placeholder="Item">
+  <!-- Botón para crear nueva tarea -->
+  <button onclick="abrirModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow">
+    ➕ Nueva tarea
+  </button>
 
-    <div class="inline">
-      <select id="nuevoAreas" multiple></select>
-      <button class="btn" onclick="abrirModal('area')">➕ Nuevo</button>
-    </div>
+  <!-- Tabla de tareas -->
+  <div id="taskTable" class="mt-6"></div>
 
-    <div class="inline">
-      <select id="nuevoResponsable"></select>
-      <button class="btn" onclick="abrirModal('responsable')">➕ Nuevo</button>
-    </div>
+  <!-- Modal de creación de tareas -->
+  <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+      <h2 class="text-xl font-bold mb-4">Nueva tarea</h2>
+      <form id="taskForm" class="space-y-3">
+        <input type="text" id="item" placeholder="Item (ej: 1.1.1)" class="w-full border p-2 rounded" required>
+        <input type="text" id="titulo" placeholder="Título" class="w-full border p-2 rounded" required>
+        
+        <!-- Áreas -->
+        <label class="block">Área(s):</label>
+        <select id="areas" multiple class="w-full border p-2 rounded">
+          <option>RRHH</option>
+          <option>Comercial</option>
+          <option>Backus</option>
+          <option>Operaciones</option>
+        </select>
+        
+        <!-- Responsable -->
+        <label class="block">Responsable:</label>
+        <select id="responsable" class="w-full border p-2 rounded">
+          <option>Juan Pérez</option>
+          <option>María Gómez</option>
+          <option>Carlos Ruiz</option>
+        </select>
 
-    <input type="number" id="nuevoAvance" placeholder="% Avance inicial">
-    <input type="text" id="nuevoDrive" placeholder="Link Carpeta Drive">
-    <input type="text" id="nuevoImagen" placeholder="URL Imagen KPI">
-    <button class="btn" onclick="crearTarea()">Guardar Tarea</button>
-  </div>
+        <!-- Cantidad de niveles -->
+        <label class="block">Cantidad de niveles:</label>
+        <input type="number" id="cantidadNiveles" min="1" max="6" value="3" class="w-full border p-2 rounded" onchange="generarCamposNiveles()">
 
-  <!-- Modal Agregar Nuevo -->
-  <div id="modalNuevo" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="cerrarModalNuevo()">&times;</span>
-      <h3 id="modalTitulo"></h3>
-      <input type="text" id="nuevoNombre" placeholder="Escriba nombre">
-      <button class="btn" onclick="guardarNuevo()">Guardar</button>
+        <!-- Inputs dinámicos para niveles -->
+        <div id="nivelesContainer" class="space-y-2"></div>
+
+        <input type="text" id="carpetaDrive" placeholder="Link Carpeta Drive" class="w-full border p-2 rounded">
+        
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Guardar</button>
+        <button type="button" onclick="cerrarModal()" class="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
+      </form>
     </div>
   </div>
 
   <script>
-    let admin = false;
-    let tipoActual = "";
-    let listaAreas = ["Comercial","Backus","RRHH","Operaciones"];
-    let listaResponsables = ["Juan Pérez","María López"];
+    let tareas = [];
 
-    const tareas = [
-      {
-        titulo: "Cumplimiento de puntos de venta",
-        item: "Cobertura",
-        areas: ["Comercial"],
-        responsable: "Juan Pérez",
-        niveles: ["Nivel 1 ✅", "Nivel 2 ⬜", "Nivel 3 ⬜", "Nivel 4 ⬜"],
-        avance: 25,
-        drive: "https://drive.google.com/",
-        imagen: "https://via.placeholder.com/600x200.png?text=KPI+Comercial",
-        comentarios: []
-      }
-    ];
+    // Abrir modal
+    function abrirModal() {
+      document.getElementById('taskModal').classList.remove('hidden');
+      generarCamposNiveles();
+    }
 
-    function renderTabla() {
-      const tbody = document.getElementById("tbody");
-      tbody.innerHTML = "";
-      tareas.forEach((tarea, index) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${tarea.areas.map(a=>`<span class="area-tag ${a}">${a}</span>`).join(" ")}</td>
-          <td>${tarea.item}</td>
-          <td>${tarea.titulo}</td>
-          <td>${tarea.niveles.join(" | ")}</td>
-          <td>${tarea.avance}%</td>
-          <td>${tarea.responsable}</td>
-          <td><a href="${tarea.drive}" target="_blank" class="btn">📂 Abrir</a></td>
+    // Cerrar modal
+    function cerrarModal() {
+      document.getElementById('taskModal').classList.add('hidden');
+      document.getElementById('taskForm').reset();
+      document.getElementById('nivelesContainer').innerHTML = "";
+    }
+
+    // Generar inputs dinámicos de niveles
+    function generarCamposNiveles() {
+      const cantidad = document.getElementById('cantidadNiveles').value;
+      const container = document.getElementById('nivelesContainer');
+      container.innerHTML = "";
+      for (let i = 1; i <= cantidad; i++) {
+        container.innerHTML += `
+          <input type="text" id="nivel_${i}" placeholder="Meta Nivel ${i} (ej: 80%)" class="w-full border p-2 rounded">
         `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function renderSelects() {
-      const selAreas = document.getElementById("nuevoAreas");
-      selAreas.innerHTML = "";
-      listaAreas.forEach(a=>{
-        const opt = document.createElement("option");
-        opt.value = a;
-        opt.textContent = a;
-        selAreas.appendChild(opt);
-      });
-
-      const selResp = document.getElementById("nuevoResponsable");
-      selResp.innerHTML = "";
-      listaResponsables.forEach(r=>{
-        const opt = document.createElement("option");
-        opt.value = r;
-        opt.textContent = r;
-        selResp.appendChild(opt);
-      });
-    }
-
-    function solicitarCodigo() {
-      const codigo = prompt("Ingrese código de administrador:");
-      if (codigo === "william.oliva") {
-        admin = true;
-        document.getElementById("btnNuevaTarea").style.display = "inline-block";
-        alert("Acceso concedido ✅");
-      } else {
-        alert("Código incorrecto ❌");
       }
     }
 
-    function mostrarFormulario() {
-      renderSelects();
-      document.getElementById("formNuevaTarea").style.display = "block";
-    }
+    // Guardar tarea
+    document.getElementById('taskForm').addEventListener('submit', function(e) {
+      e.preventDefault();
 
-    function crearTarea() {
-      const titulo = document.getElementById("nuevoTitulo").value;
-      const item = document.getElementById("nuevoItem").value;
-      const areas = Array.from(document.getElementById("nuevoAreas").selectedOptions).map(o=>o.value);
-      const responsable = document.getElementById("nuevoResponsable").value;
-      const avance = parseInt(document.getElementById("nuevoAvance").value) || 0;
-      const drive = document.getElementById("nuevoDrive").value;
-      const imagen = document.getElementById("nuevoImagen").value || "https://via.placeholder.com/600x200.png?text=KPI";
-      const niveles = ["Nivel 1 ⬜", "Nivel 2 ⬜", "Nivel 3 ⬜", "Nivel 4 ⬜"];
+      const item = document.getElementById('item').value;
+      const titulo = document.getElementById('titulo').value;
+      const areas = Array.from(document.getElementById('areas').selectedOptions).map(opt => opt.value);
+      const responsable = document.getElementById('responsable').value;
+      const carpetaDrive = document.getElementById('carpetaDrive').value;
 
-      tareas.push({ titulo, item, areas, responsable, niveles, avance, drive, imagen, comentarios: [] });
-      renderTabla();
-      document.getElementById("formNuevaTarea").style.display = "none";
-    }
-
-    function abrirModal(tipo) {
-      tipoActual = tipo;
-      document.getElementById("modalTitulo").innerText = "Agregar nuevo " + tipo;
-      document.getElementById("nuevoNombre").value = "";
-      document.getElementById("modalNuevo").style.display = "block";
-    }
-
-    function cerrarModalNuevo() {
-      document.getElementById("modalNuevo").style.display = "none";
-    }
-
-    function guardarNuevo() {
-      const nombre = document.getElementById("nuevoNombre").value.trim();
-      if (nombre === "") return;
-      if (tipoActual === "area") {
-        listaAreas.push(nombre);
-      } else if (tipoActual === "responsable") {
-        listaResponsables.push(nombre);
+      const cantidadNiveles = document.getElementById('cantidadNiveles').value;
+      let niveles = [];
+      for (let i = 1; i <= cantidadNiveles; i++) {
+        niveles.push({ nivel: i, meta: document.getElementById(`nivel_${i}`).value });
       }
-      cerrarModalNuevo();
-      renderSelects();
+
+      const nuevaTarea = { item, titulo, areas, responsable, niveles, carpetaDrive, comentarios: [] };
+      tareas.push(nuevaTarea);
+
+      // Ordenar por item
+      tareas.sort((a, b) => compararItems(a.item, b.item));
+
+      renderTasks();
+      cerrarModal();
+    });
+
+    // Comparar items tipo 1.1.2
+    function compararItems(a, b) {
+      const pa = a.split('.').map(Number);
+      const pb = b.split('.').map(Number);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        if ((pa[i] || 0) < (pb[i] || 0)) return -1;
+        if ((pa[i] || 0) > (pb[i] || 0)) return 1;
+      }
+      return 0;
     }
 
-    renderTabla();
+    // Renderizar tabla
+    function renderTasks() {
+      let html = `
+        <table class="w-full bg-white rounded shadow">
+          <thead>
+            <tr class="bg-gray-200 text-left">
+              <th class="p-2">Item</th>
+              <th class="p-2">Título</th>
+              <th class="p-2">Áreas</th>
+              <th class="p-2">Responsable</th>
+              <th class="p-2">Niveles</th>
+              <th class="p-2">Carpeta</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      tareas.forEach(t => {
+        html += `
+          <tr class="border-t">
+            <td class="p-2">${t.item}</td>
+            <td class="p-2">${t.titulo}</td>
+            <td class="p-2">${t.areas.join(", ")}</td>
+            <td class="p-2">${t.responsable}</td>
+            <td class="p-2">${t.niveles.map(n => `${n.nivel}:${n.meta}`).join(", ")}</td>
+            <td class="p-2"><a href="${t.carpetaDrive}" target="_blank" class="text-blue-600">📂 Abrir</a></td>
+          </tr>
+        `;
+      });
+      html += "</tbody></table>";
+      document.getElementById('taskTable').innerHTML = html;
+    }
   </script>
 </body>
 </html>
-
