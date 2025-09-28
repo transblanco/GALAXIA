@@ -4,13 +4,27 @@
   <meta charset="UTF-8">
   <title>Gestor de KPIs</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            darkbg: "#1e1e2f",
+            darkcard: "#2a2a40",
+            accent: "#3b82f6",
+            accentGreen: "#22c55e"
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body class="bg-gray-100 min-h-screen p-6">
+<body class="bg-darkbg text-gray-100 min-h-screen p-6">
 
-  <h1 class="text-3xl font-bold mb-6">📊 Gestor de KPIs</h1>
+  <h1 class="text-3xl font-bold mb-6 text-accent">📊 Gestor de KPIs</h1>
 
   <!-- Botón para crear nueva tarea -->
-  <button onclick="abrirModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow">
+  <button onclick="abrirModal()" class="bg-accent hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow">
     ➕ Nueva tarea
   </button>
 
@@ -18,16 +32,16 @@
   <div id="taskTable" class="mt-6"></div>
 
   <!-- Modal de creación de tareas -->
-  <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-      <h2 class="text-xl font-bold mb-4">Nueva tarea</h2>
+  <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+    <div class="bg-darkcard p-6 rounded-lg shadow-lg w-96">
+      <h2 class="text-xl font-bold mb-4 text-accent">Nueva tarea</h2>
       <form id="taskForm" class="space-y-3">
-        <input type="text" id="item" placeholder="Item (ej: 1.1.1)" class="w-full border p-2 rounded" required>
-        <input type="text" id="titulo" placeholder="Título" class="w-full border p-2 rounded" required>
+        <input type="text" id="item" placeholder="Item (ej: 1.1.1)" class="w-full border border-gray-600 bg-darkbg p-2 rounded" required>
+        <input type="text" id="titulo" placeholder="Título" class="w-full border border-gray-600 bg-darkbg p-2 rounded" required>
         
         <!-- Áreas -->
         <label class="block">Área(s):</label>
-        <select id="areas" multiple class="w-full border p-2 rounded">
+        <select id="areas" multiple class="w-full border border-gray-600 bg-darkbg p-2 rounded">
           <option>RRHH</option>
           <option>Comercial</option>
           <option>Backus</option>
@@ -36,7 +50,7 @@
         
         <!-- Responsable -->
         <label class="block">Responsable:</label>
-        <select id="responsable" class="w-full border p-2 rounded">
+        <select id="responsable" class="w-full border border-gray-600 bg-darkbg p-2 rounded">
           <option>Juan Pérez</option>
           <option>María Gómez</option>
           <option>Carlos Ruiz</option>
@@ -44,15 +58,22 @@
 
         <!-- Cantidad de niveles -->
         <label class="block">Cantidad de niveles:</label>
-        <input type="number" id="cantidadNiveles" min="1" max="6" value="3" class="w-full border p-2 rounded" onchange="generarCamposNiveles()">
+        <input type="number" id="cantidadNiveles" min="1" max="6" value="3" class="w-full border border-gray-600 bg-darkbg p-2 rounded" onchange="generarCamposNiveles()">
 
         <!-- Inputs dinámicos para niveles -->
         <div id="nivelesContainer" class="space-y-2"></div>
 
-        <input type="text" id="carpetaDrive" placeholder="Link Carpeta Drive" class="w-full border p-2 rounded">
-        
-        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Guardar</button>
-        <button type="button" onclick="cerrarModal()" class="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
+        <!-- Carpeta Drive -->
+        <input type="text" id="carpetaDrive" placeholder="Link Carpeta Drive" class="w-full border border-gray-600 bg-darkbg p-2 rounded">
+
+        <!-- Imagen KPI -->
+        <label class="block">Imagen KPI (URL):</label>
+        <input type="text" id="imagenKpi" placeholder="https://ejemplo.com/kpi.png" class="w-full border border-gray-600 bg-darkbg p-2 rounded">
+
+        <div class="flex gap-2">
+          <button type="submit" class="bg-accentGreen hover:bg-green-700 text-white px-4 py-2 rounded w-full">Guardar</button>
+          <button type="button" onclick="cerrarModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded w-full">Cancelar</button>
+        </div>
       </form>
     </div>
   </div>
@@ -80,7 +101,7 @@
       container.innerHTML = "";
       for (let i = 1; i <= cantidad; i++) {
         container.innerHTML += `
-          <input type="text" id="nivel_${i}" placeholder="Meta Nivel ${i} (ej: 80%)" class="w-full border p-2 rounded">
+          <input type="text" id="nivel_${i}" placeholder="Meta Nivel ${i} (ej: 80%)" class="w-full border border-gray-600 bg-darkbg p-2 rounded">
         `;
       }
     }
@@ -94,6 +115,7 @@
       const areas = Array.from(document.getElementById('areas').selectedOptions).map(opt => opt.value);
       const responsable = document.getElementById('responsable').value;
       const carpetaDrive = document.getElementById('carpetaDrive').value;
+      const imagenKpi = document.getElementById('imagenKpi').value;
 
       const cantidadNiveles = document.getElementById('cantidadNiveles').value;
       let niveles = [];
@@ -101,7 +123,7 @@
         niveles.push({ nivel: i, meta: document.getElementById(`nivel_${i}`).value });
       }
 
-      const nuevaTarea = { item, titulo, areas, responsable, niveles, carpetaDrive, comentarios: [] };
+      const nuevaTarea = { item, titulo, areas, responsable, niveles, carpetaDrive, imagenKpi, comentarios: [] };
       tareas.push(nuevaTarea);
 
       // Ordenar por item
@@ -125,28 +147,30 @@
     // Renderizar tabla
     function renderTasks() {
       let html = `
-        <table class="w-full bg-white rounded shadow">
+        <table class="w-full bg-darkcard rounded shadow">
           <thead>
-            <tr class="bg-gray-200 text-left">
+            <tr class="bg-gray-800 text-left">
               <th class="p-2">Item</th>
               <th class="p-2">Título</th>
               <th class="p-2">Áreas</th>
               <th class="p-2">Responsable</th>
               <th class="p-2">Niveles</th>
               <th class="p-2">Carpeta</th>
+              <th class="p-2">Imagen</th>
             </tr>
           </thead>
           <tbody>
       `;
       tareas.forEach(t => {
         html += `
-          <tr class="border-t">
+          <tr class="border-t border-gray-700 hover:bg-gray-700">
             <td class="p-2">${t.item}</td>
             <td class="p-2">${t.titulo}</td>
             <td class="p-2">${t.areas.join(", ")}</td>
             <td class="p-2">${t.responsable}</td>
             <td class="p-2">${t.niveles.map(n => `${n.nivel}:${n.meta}`).join(", ")}</td>
-            <td class="p-2"><a href="${t.carpetaDrive}" target="_blank" class="text-blue-600">📂 Abrir</a></td>
+            <td class="p-2"><a href="${t.carpetaDrive}" target="_blank" class="text-accent">📂 Abrir</a></td>
+            <td class="p-2">${t.imagenKpi ? `<img src="${t.imagenKpi}" alt="KPI" class="h-12 rounded">` : "—"}</td>
           </tr>
         `;
       });
@@ -156,3 +180,4 @@
   </script>
 </body>
 </html>
+
