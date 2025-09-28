@@ -59,8 +59,8 @@
   </div>
 
   <!-- MODAL: Crear / Editar Tarea -->
-  <div id="createModal" class="fixed inset-0 hidden items-center justify-center z-50">
-    <div class="absolute inset-0 bg-black/60"></div>
+  <div id="createModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/80"></div>
     <div class="relative max-w-3xl w-full mx-4 card rounded-lg p-6">
       <div class="flex justify-between items-center mb-4">
         <h2 id="createTitle" class="text-xl font-bold">➕ Nueva tarea</h2>
@@ -127,8 +127,8 @@
   </div>
 
   <!-- MODAL: AGREGAR NUEVA AREA / RESPONSABLE -->
-  <div id="addModal" class="fixed inset-0 hidden items-center justify-center z-50">
-    <div class="absolute inset-0 bg-black/60"></div>
+  <div id="addModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/80"></div>
     <div class="relative max-w-md w-full mx-4 card rounded-lg p-6">
       <div class="flex justify-between items-center mb-4">
         <h3 id="addTitle" class="text-lg font-bold">➕ Nuevo</h3>
@@ -146,8 +146,8 @@
   </div>
 
   <!-- MODAL: Detalle tarea -->
-  <div id="detailModal" class="fixed inset-0 hidden items-center justify-center z-50">
-    <div class="absolute inset-0 bg-black/60"></div>
+  <div id="detailModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/80"></div>
     <div class="relative max-w-3xl w-full mx-4 card rounded-lg p-6">
       <div class="flex justify-between items-start gap-4">
         <div>
@@ -210,6 +210,9 @@
 /* -----------------------------
    STORAGE KEYS & DEFAULT DATA
    ----------------------------- */
+const APP_NAME = 'TaskManager';
+console.log('App:', APP_NAME);
+
 const KEY_TASKS = 'galaxia_tasks_v1';
 const KEY_AREAS = 'galaxia_areas_v1';
 const KEY_RESPS = 'galaxia_resps_v1';
@@ -667,3 +670,4 @@ boot();
 </script>
 </body>
 </html>
+
