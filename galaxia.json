@@ -1,0 +1,14 @@
+{
+  "appName": "Galaxia KPI",
+  "version": "1.0.0",
+  "features": {
+    "enableTareas": true,
+    "enableAreas": true,
+    "enableResponsables": true
+  },
+  "files": {
+    "tareas": "tareas.json",
+    "areas": "areas.json",
+    "responsables": "responsables.json"
+  }
+}
