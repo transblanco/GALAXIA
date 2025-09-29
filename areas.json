@@ -1,1 +1,6 @@
-{"areas":[]}
+[
+  { "nombre": "Comercial", "color": "#10b981" },
+  { "nombre": "Backus", "color": "#f59e0b" },
+  { "nombre": "RRHH", "color": "#3b82f6" },
+  { "nombre": "Operaciones", "color": "#ef4444" }
+]
