@@ -21,10 +21,10 @@
       {
         "nivel": 2,
         "valor": 100,
-        "cumplido": false
+        "cumplido": true
       }
     ],
-    "avance": 33,
+    "avance": 100,
     "carpetaDrive": "https://drive.google.com/drive/folders/1OFkdidtcfJ2IwNCEpPL5ieaVat58i5pG?usp=drive_link",
     "imagenKpi": "https://i.postimg.cc/1tCfzP6d/1-1-1-1.jpg",
     "comentarios": []
