@@ -1,7 +1,10 @@
 name: Inicializar JSON de Galaxia
 
 on:
-  workflow_dispatch:   # lo ejecutas manualmente desde Actions
+  workflow_dispatch:
+
+permissions:
+  contents: write   # 🔑 le da permiso de escritura al repo
 
 jobs:
   build:
@@ -36,3 +39,4 @@ jobs:
           git add tareas.json areas.json responsables.json
           git commit -m "Inicialización de JSON base" || echo "Sin cambios que commitear"
           git push
+
