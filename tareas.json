@@ -16,7 +16,7 @@
       {
         "nivel": 1,
         "valor": 33,
-        "cumplido": true
+        "cumplido": false
       },
       {
         "nivel": 2,
@@ -31,6 +31,10 @@
       {
         "text": "prueba comentario 1",
         "ts": 1759120383489
+      },
+      {
+        "text": "Prueba correo 2",
+        "ts": 1759120679051
       }
     ]
   }
