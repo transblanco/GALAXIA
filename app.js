@@ -5,7 +5,7 @@
   // 1) Cargar galaxia.json (config pública)
   async function loadPublicConfig(){
     try {
-      const r = await fetch('/galaxia.json', { cache: 'no-store' });
+      const r = await fetch('/GALAXIA/galaxia.json', { cache: 'no-store' });
       if(!r.ok) throw new Error('No se pudo cargar galáxia.json');
       return await r.json();
     } catch(e) {
