@@ -1,3 +1,4 @@
+// config.js
 const CONFIG = {
   token: "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",  // tu GitHub Personal Access Token
   repoOwner: "transblanco", // tu usuario u organización en GitHub
@@ -9,3 +10,5 @@ const CONFIG = {
     responsables: "responsables.json" // archivo para responsables
   }
 };
+
+export default CONFIG;
