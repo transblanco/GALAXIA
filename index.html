@@ -1,3 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Galaxia KPI — Gestor</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --bg: #0f1724;
+            --card: #0b1220;
+            --muted: #9ca3af;
+            --accent: #3b82f6;
+            --accent-green: #10b981;
+        }
+        body { background: var(--bg); color: #e6eef8; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+        .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); }
+        .tag { font-weight:600; font-size:.82rem; padding:.25rem .55rem; border-radius:9999px; color:#fff; display:inline-block; margin-right:6px; margin-bottom:4px; }
+        .small-muted { color:var(--muted); font-size:.86rem; }
+        .row-hover:hover { background: rgba(255,255,255,0.02); cursor:pointer; }
+        .scroll-y { max-height:220px; overflow-y:auto; }
+        .level-badge { display:inline-flex; align-items:center; gap:6px; padding:.25rem .5rem; border-radius:10px; font-size:.82rem; margin-right:6px; background: rgba(255,255,255,0.02); }
+        .btn { transition: all .12s ease; }
+        .btn:hover { transform: translateY(-1px); }
+        /* Modal overlay with 95% opacity */
+        .modal-overlay { background: rgba(0,0,0,0.95); position: absolute; inset: 0; }
+        /* Make modal content slightly less transparent (solid) */
+        .modal-card { background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); }
+        @media (max-width:820px){ .md\:grid-cols-2{ grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <script src="/GALAXIA/frontend-config.js"></script>
+    <script src="/GALAXIA/app.js"></script>
+
+    <div class="max-w-6xl mx-auto p-6">
+
+        <header class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-white">📊 Galaxia KPI — Gestor</h1>
+                <p class="small-muted mt-1">Seguimiento auditoría — Backus (Galaxia)</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div id="adminBadge" class="hidden px-3 py-1 rounded-full bg-green-600 text-black font-semibold">ADMIN</div>
+                <button id="loginBtn" class="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 btn">🔑 Ingresar Admin</button>
+                <button id="newTaskBtn" class="px-3 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 btn hidden">➕ Nueva tarea</button>
+            </div>
+        </header>
+
+        <div class="flex items-center justify-between gap-4 mb-6">
+            <div class="flex items-center gap-3">
+                <div class="card px-4 py-2 rounded-md small-muted">Tareas guardadas: <span id="countTasks" class="font-semibold text-white ml-2">0</span></div>
+                <div class="card px-4 py-2 rounded-md small-muted">Áreas: <span id="countAreas" class="font-semibold text-white ml-2">0</span></div>
+            </div>
+            <div class="small-muted">Conexión: <span id="statusAdmin" class="font-semibold text-white ml-2">Usuario</span></div>
+        </div>
+
+        <section class="card rounded-lg p-4">
+            <div id="taskTable" class="w-full overflow-x-auto"></div>
+        </section>
+    </div>
+
+    <div id="createModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
+        <div class="modal-overlay"></div>
+        <div class="relative max-w-3xl w-full mx-4 modal-card rounded-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="createTitle" class="text-xl font-bold">➕ Nueva tarea</h2>
+                <button class="text-gray-300" onclick="closeCreateModal()">✕</button>
+            </div>
+
+            <form id="createForm" class="grid grid-cols-1 gap-3">
+                <div class="grid grid-cols-3 gap-3">
+                    <input id="inputItem" class="col-span-1 p-2 rounded bg-transparent border border-zinc-700" placeholder="Item (ej: 1.1.1)" required>
+                    <input id="inputTitulo" class="col-span-2 p-2 rounded bg-transparent border border-zinc-700" placeholder="Título de la tarea" required>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-1">
+                        <label class="small-muted mb-1 block">Áreas (Ctrl/Shift para mult)</label>
+                        <select id="selectAreas" multiple class="w-full p-2 rounded bg-transparent border border-zinc-700"></select>
+                    </div>
+                    <div class="col-span-1 flex items-end gap-2">
+                        <button type="button" class="px-3 py-2 bg-indigo-600 rounded btn" onclick="openAddModal('area')">➕ Nueva Área</button>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="small-muted mb-1 block">Responsable</label>
+                        <select id="selectResp" class="w-full p-2 rounded bg-transparent border border-zinc-700"></select>
+                    </div>
+                    <div class="col-span-1 flex items-end gap-2">
+                        <button type="button" class="px-3 py-2 bg-indigo-600 rounded btn" onclick="openAddModal('responsable')">➕ Nuevo</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="small-muted block mb-1">Cantidad de niveles</label>
+                        <input id="inputCantidadNiv" type="number" min="1" max="6" value="3" class="p-2 rounded bg-transparent border border-zinc-700" onchange="renderNivelInputs()">
+                    </div>
+                    <div>
+                        <label class="small-muted block mb-1">% Avance inicial (solo admin)</label>
+                        <input id="inputAvance" type="number" min="0" max="100" value="0" class="p-2 rounded bg-transparent border border-zinc-700">
+                    </div>
+                    <div>
+                        <label class="small-muted block mb-1">Carpeta Drive</label>
+                        <input id="inputDrive" type="url" placeholder="https://drive.google.com/..." class="p-2 rounded bg-transparent border border-zinc-700">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="small-muted block mb-1">Metas por nivel (0–100) — Empiezan en Nivel 0</label>
+                    <div id="nivelesInputs" class="grid gap-2"></div>
+                </div>
+
+                <div>
+                    <label class="small-muted block mb-1">Imagen KPI (URL)</label>
+                    <input id="inputImagen" type="url" placeholder="https://..." class="p-2 rounded bg-transparent border border-zinc-700">
+                </div>
+
+                <div class="flex gap-2 justify-end mt-2">
+                    <button type="button" class="px-4 py-2 rounded bg-zinc-600 hover:bg-zinc-500" onclick="closeCreateModal()">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400">Guardar tarea</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="addModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
+        <div class="modal-overlay"></div>
+        <div class="relative max-w-md w-full mx-4 modal-card rounded-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="addTitle" class="text-lg font-bold">➕ Nuevo</h3>
+                <button class="text-gray-300" onclick="closeAddModal()">✕</button>
+            </div>
+            <div class="grid gap-3">
+                <input id="addInput" class="p-2 rounded bg-transparent border border-zinc-700" placeholder="Nombre...">
+                <input id="addColor" class="p-2 rounded bg-transparent border border-zinc-700" placeholder="#HEX (opcional)">
+                <div class="flex justify-end gap-2">
+                    <button class="px-4 py-2 rounded bg-zinc-600" onclick="closeAddModal()">Cancelar</button>
+                    <button class="px-4 py-2 rounded bg-indigo-600" onclick="saveAdd()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
+        <div class="modal-overlay"></div>
+        <div class="relative max-w-3xl w-full mx-4 modal-card rounded-lg p-6">
+            <div class="flex justify-between items-start gap-4">
+                <div>
+                    <h2 id="detailTitle" class="text-2xl font-bold"></h2>
+                    <p class="small-muted" id="detailItem"></p>
+                    <div id="detailAreas" class="mt-2"></div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="editSaveBtn" class="hidden px-3 py-1 rounded bg-emerald-500">Guardar cambios</button>
+                    <button class="px-3 py-1 rounded bg-zinc-600" onclick="closeDetailModal()">Cerrar</button>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4 mt-4">
+                <div>
+                    <p class="small-muted">Responsable</p>
+                    <p id="detailResp" class="font-semibold"></p>
+
+                    <p class="small-muted mt-3">Niveles de cumplimiento</p>
+                    <ul id="detailNiveles" class="mt-2"></ul>
+
+                    <p class="small-muted mt-3">% Avance</p>
+                    <div class="flex items-center gap-3 mt-1">
+                        <div class="w-full bg-zinc-800 h-4 rounded overflow-hidden">
+                            <div id="detailProgressBar" class="h-4 bg-emerald-500" style="width:0%"></div>
+                        </div>
+                        <div id="avanceDisplay" class="font-semibold">0%</div>
+                    </div>
+
+                    <div id="avanceEditWrap" class="mt-2 hidden">
+                        <label class="small-muted">Editar % Avance</label>
+                        <input id="avanceEdit" type="number" min="0" max="100" class="p-2 mt-1 w-32 rounded bg-transparent border border-zinc-700">
+                    </div>
+
+                    <p class="small-muted mt-4">Carpeta Drive</p>
+                    <a id="detailDrive" class="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">Abrir Carpeta</a>
+
+                    <div class="mt-4">
+                        <p class="small-muted">Comentarios</p>
+                        <ul id="detailComentarios" class="mt-2 scroll-y"></ul>
+
+                        <div class="flex gap-2 mt-2">
+                            <input id="comentarioText" placeholder="Agregar comentario..." class="p-2 rounded bg-transparent border border-zinc-700 flex-1">
+                            <button id="btnAddComment" class="px-3 py-2 rounded bg-indigo-600" onclick="addComment()">Comentar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="small-muted">Imagen KPI</p>
+                    <div class="mt-2 card p-3 rounded">
+                        <img id="detailImagen" src="" alt="Imagen KPI" class="w-full object-contain rounded" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
 /* index.html UI glue: usa window.APP.* (serverless-based) que debes tener en /GALAXIA/app.js
    - FRONTEND_CONFIG debe existir (en /GALAXIA/frontend-config.js). */
@@ -113,6 +322,8 @@
           n.cumplido = true;
         }
       });
+      // Aseguramos que el avance esté en el rango 0-100
+      task.avance = Math.min(100, Math.max(0, task.avance));
       return task.avance; // Devuelve el avance manual
     }
 
@@ -184,7 +395,8 @@
     for(let i=0;i<how;i++){
       const wrap = document.createElement('div'); wrap.className='flex gap-2 items-center';
       const label = document.createElement('label'); label.textContent = `Nivel ${i}:`; label.className='small-muted w-24';
-      const input = document.createElement('input'); input.type='number'; input.min=0; input.max=100; input.value=0; input.id=`meta_nivel_${i}`;
+      const input = document.createElement('input'); input.type='number'; input.min=0; input.max=100; input.value= i===0 ? 0 : 25 + i * 15; // default values for clarity
+      input.id=`meta_nivel_${i}`;
       input.className='p-2 rounded bg-transparent border border-zinc-700 w-32';
       const pct = document.createElement('span'); pct.className='small-muted'; pct.innerText = '%';
       input.addEventListener('input', ()=> {
@@ -265,6 +477,7 @@
     (t.niveles||[]).forEach((n,i)=>{
       const li = document.createElement('li'); li.className='flex items-center gap-3 py-1';
       const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = !!n.cumplido; chk.disabled = !admin;
+      chk.id = `detail_level_${t.id}_${i}`; // ID único para el checkbox
       
       // ⚡ Fix: Guardado de Nivel y lógica de Avance
       chk.addEventListener('change', async ()=>{
@@ -327,9 +540,10 @@
     display.innerText = value + '%'; 
     
     // ⚡ Actualiza los checkboxes en el modal para reflejar el avance calculado
+    // Nota: Usamos querySelectorAll para encontrar los checkboxes correctos
+    const chks = document.querySelectorAll('#detailNiveles input[type="checkbox"]');
     (t.niveles||[]).forEach((n,i) => {
-      const chk = document.querySelector(`#detailNiveles input[type="checkbox"]:nth-child(${i+1})`);
-      if(chk) chk.checked = !!n.cumplido;
+      if(chks[i]) chks[i].checked = !!n.cumplido;
     });
   }
 
@@ -352,7 +566,7 @@
     t.comentarios = t.comentarios || [];
     t.comentarios.push({ text: txt, ts: Date.now() });
     
-    if (await saveTasksAndRefreshUI(tasks, false, false)) { // No recarga tabla ni modal, solo guarda
+    if (await saveTasksAndRefreshUI(tasks, false, false)) { // Solo guarda, NO recarga tabla ni modal completo
       document.getElementById('comentarioText').value = '';
       renderComments(t); // Solo re-renderiza la sección de comentarios
     }
@@ -443,7 +657,7 @@
   window.closeDetailModal = closeDetailModal;
   window.saveAdd = saveAdd;
   window.addComment = addComment;
-  window.renderNivelInputs = renderNivelInputs; // Exponer por si acaso es necesario en el HTML
+  window.renderNivelInputs = renderNivelInputs; 
 
   // Boot
   (async function boot(){
@@ -458,3 +672,5 @@
 
 })();
 </script>
+</body>
+</html>
