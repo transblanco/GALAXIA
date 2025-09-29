@@ -1,0 +1,38 @@
+name: Inicializar JSON de Galaxia
+
+on:
+  workflow_dispatch:   # lo ejecutas manualmente desde Actions
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Crear tareas.json si no existe
+        run: |
+          if [ ! -f tareas.json ]; then
+            echo '{"tareas":[]}' > tareas.json
+          fi
+
+      - name: Crear areas.json si no existe
+        run: |
+          if [ ! -f areas.json ]; then
+            echo '{"areas":[]}' > areas.json
+          fi
+
+      - name: Crear responsables.json si no existe
+        run: |
+          if [ ! -f responsables.json ]; then
+            echo '{"responsables":[]}' > responsables.json
+          fi
+
+      - name: Commit cambios
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add tareas.json areas.json responsables.json
+          git commit -m "Inicialización de JSON base" || echo "Sin cambios que commitear"
+          git push
