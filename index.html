@@ -443,28 +443,19 @@
     (t.niveles||[]).forEach((n,i)=>{
       const li = document.createElement('li'); li.className='flex items-center gap-3 py-1';
       const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = !!n.cumplido; chk.disabled = !admin;
-      // Dentro de openDetail() -> cuando se crea cada checkbox:
-chk.addEventListener('change', async ()=>{
-  if(!admin){ chk.checked = !chk.checked; alert('Solo admin puede cambiar niveles'); return; }
-  n.cumplido = chk.checked;
-
-  // Actualiza el avance de forma lógica (opcional: promedio de niveles cumplidos)
-  const total = t.niveles.reduce((sum,x)=>sum+(x.cumplido ? x.valor : 0),0);
-  t.avance = Math.round(total / t.niveles.length);
-
-  try {
-    // Guarda cambios en el servidor
-    if(window.APP && typeof window.APP.saveTareas === 'function') await window.APP.saveTareas(tasks);
-
-    // Actualiza solo la parte del detalle (sin reload total)
-    updateDetailProgress(t);
-    renderTable(); // refresca tabla parcialmente para mostrar avance actualizado
-  } catch(e){
-    console.error('Guardar nivel', e); 
-    alert('Error guardando nivel');
-  }
-});
-
+      chk.addEventListener('change', async ()=>{
+        if(!admin){ chk.checked = !chk.checked; alert('Solo admin puede cambiar niveles'); return; }
+        n.cumplido = chk.checked;
+        if(n.cumplido && Number.isFinite(n.valor)) t.avance = n.valor;
+        try {
+          if(window.APP && typeof window.APP.saveTareas === 'function') await window.APP.saveTareas(tasks);
+          await loadAll();
+          updateDetailProgress(t);
+        } catch(e){ console.error('Guardar nivel', e); alert('Error guardando nivel'); }
+      });
+      const label = document.createElement('span'); label.innerHTML = `<strong>Nivel ${n.nivel}</strong> — ${formatPct(n.valor)}`;
+      li.appendChild(chk); li.appendChild(label); nivelesUL.appendChild(li);
+    });
 
     updateDetailProgress(t);
     document.getElementById('avanceEditWrap').style.display = admin ? 'block' : 'none';
@@ -494,7 +485,7 @@ chk.addEventListener('change', async ()=>{
         console.error('Guardar avance', e);
         alert('Error guardando avance');
       }
-    });
+    };
   }
 
   function closeDetailModal(){ currentIndex = null; document.getElementById('detailModal').classList.add('hidden'); }
