@@ -443,7 +443,8 @@
     (t.niveles||[]).forEach((n,i)=>{
       const li = document.createElement('li'); li.className='flex items-center gap-3 py-1';
       const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = !!n.cumplido; chk.disabled = !admin;
-      chk.addEventListener('change', async ()=>{
+      // Dentro de openDetail() -> cuando se crea cada checkbox:
+chk.addEventListener('change', async ()=>{
   if(!admin){ chk.checked = !chk.checked; alert('Solo admin puede cambiar niveles'); return; }
   n.cumplido = chk.checked;
 
@@ -463,6 +464,8 @@
     alert('Error guardando nivel');
   }
 });
+
+
     updateDetailProgress(t);
     document.getElementById('avanceEditWrap').style.display = admin ? 'block' : 'none';
     document.getElementById('avanceEdit').value = t.avance || 0;
@@ -491,7 +494,7 @@
         console.error('Guardar avance', e);
         alert('Error guardando avance');
       }
-    });
+    };
   }
 
   function closeDetailModal(){ currentIndex = null; document.getElementById('detailModal').classList.add('hidden'); }
@@ -619,4 +622,3 @@
 </script>
 </body>
 </html>
-
