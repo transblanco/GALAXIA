@@ -2,7 +2,7 @@
 // ATENCIÓN: este archivo contiene tu token. Lo estás guardando en el repo por decisión propia.
 
 const CONFIG = {
-  GITHUB_TOKEN: "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",
+  GITHUB_TOKEN: "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",
   REPO_OWNER: "transblanco",
   REPO_NAME: "GALAXIA",
   BRANCH: "main",
