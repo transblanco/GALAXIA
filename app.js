@@ -1,78 +1,78 @@
-// app.js
+// /GALAXIA/app.js
 // Debe cargarse después de frontend-config.js
-(async function(){
+(function(){
+  if (typeof FRONTEND_CONFIG === 'undefined') {
+    console.error('FRONTEND_CONFIG missing');
+    window.APP = {
+      loadAll: async ()=> ({ tareas: [], areas: [], respons: [] }),
+      saveTareas: async ()=> { throw new Error('FRONTEND_CONFIG missing'); }
+    };
+    return;
+  }
 
-  // 1) Cargar galaxia.json (config pública)
-  async function loadPublicConfig(){
+  const RAW_BASE = FRONTEND_CONFIG.RAW_BASE || `https://raw.githubusercontent.com/${FRONTEND_CONFIG.OWNER || 'transblanco'}/${FRONTEND_CONFIG.REPO || 'GALAXIA'}/main/`;
+  const SERVERLESS_URL = FRONTEND_CONFIG.SERVERLESS_URL || '/.netlify/functions/githubProxy';
+  const FILES = FRONTEND_CONFIG.FILES || { tareas: 'tareas.json', areas: 'areas.json', responsables: 'responsables.json' };
+
+  async function fetchJsonRaw(filename){
+    const url = RAW_BASE + filename.replace(/^\//,'');
     try {
-      const r = await fetch('/GALAXIA/galaxia.json', { cache: 'no-store' });
-      if(!r.ok) throw new Error('No se pudo cargar galáxia.json');
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) {
+        if (r.status === 404) return null;
+        throw new Error(`${r.status} ${r.statusText}`);
+      }
       return await r.json();
-    } catch(e) {
-      console.warn('No se pudo cargar galaxia.json, usando defaults', e);
+    } catch (e) {
+      console.warn('fetchJsonRaw error', url, e);
       return null;
     }
   }
 
-  const publicCfg = await loadPublicConfig();
-  // FRONTEND_CONFIG ya existe por frontend-config.js
-  const RAW_BASE = FRONTEND_CONFIG.RAW_BASE;
-  const SERVERLESS_URL = FRONTEND_CONFIG.SERVERLESS_URL;
-  const FILES = FRONTEND_CONFIG.FILES;
-
-  // 2) Lectura pública (raw.githubusercontent)
-  async function fetchJsonRaw(filename){
-    const url = RAW_BASE + filename; // asegúrate filename NO empiece con '/'
-    const res = await fetch(url, { cache: 'no-store' });
-    if(!res.ok){
-      if(res.status === 404) return null;
-      throw new Error(`Error leyendo ${filename}: ${res.status}`);
-    }
-    return await res.json();
-  }
-
-  // 3) Escritura segura: POST a Netlify Function
-  // Nota: la función en Netlify hace el PUT a GitHub con el token en env var
   async function serverSave(action, payload){
-    const res = await fetch(SERVERLESS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, payload })
-    });
-    const json = await res.json();
-    if(!res.ok) throw new Error(json.error || 'Error serverless');
-    return json;
+    try {
+      const r = await fetch(SERVERLESS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, payload })
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j && j.error ? j.error : JSON.stringify(j));
+      return j;
+    } catch (err) {
+      console.error('serverSave error', err);
+      throw err;
+    }
   }
 
-  // Ejemplos de uso:
+  // Public API methods
   async function loadAll(){
-    const tareas = await fetchJsonRaw(FILES.tareas) || [];
-    const areas  = await fetchJsonRaw(FILES.areas) || [];
-    const respons = await fetchJsonRaw(FILES.responsables) || [];
+    // Prefer server-provided single endpoint if available, else fetch raw files
+    const tareas = (await fetchJsonRaw(FILES.tareas)) || [];
+    const areas = (await fetchJsonRaw(FILES.areas)) || [];
+    const respons = (await fetchJsonRaw(FILES.responsables)) || [];
     return { tareas, areas, respons };
   }
 
-  async function saveTareas(newTareas){
-    // payload convention: { tasks: [...], file: 'tareas.json' }
-    return await serverSave('saveTasks', { tasks: newTareas, file: FILES.tareas });
+  async function saveAreas(areasArr){
+    if(!Array.isArray(areasArr)) throw new Error('areas must be array');
+    // payload: { areas: [...], file: 'areas.json' }
+    return await serverSave('saveAreas', { areas: areasArr, file: FILES.areas });
   }
 
-  async function saveAreas(newAreas){
-    return await serverSave('saveAreas', { areas: newAreas, file: FILES.areas });
+  async function saveRespons(responsArr){
+    if(!Array.isArray(responsArr)) throw new Error('respons must be array');
+    return await serverSave('saveRespons', { respons: responsArr, file: FILES.responsables });
   }
 
-  async function saveRespons(newRespons){
-    return await serverSave('saveRespons', { respons: newRespons, file: FILES.responsables });
+  async function saveTareas(tasksArr){
+    if(!Array.isArray(tasksArr)) throw new Error('tasks must be array');
+    return await serverSave('saveTasks', { tasks: tasksArr, file: FILES.tareas });
   }
 
-  // Inicial: carga y render (con tus funciones de UI)
-  const data = await loadAll();
-  console.log('Datos cargados (lectura pública):', data);
-  // Aquí llama a las funciones que renderizan la UI con `data.tareas` etc.
+  // Expose for the UI
+  window.APP = { loadAll, saveAreas, saveRespons, saveTareas, fetchJsonRaw };
 
-  // Exporta funciones al global si los modales HTML llaman a ellas
-  window.APP = {
-    loadAll, saveTareas, saveAreas, saveRespons, fetchJsonRaw
-  };
-
+  console.log('APP ready: RAW_BASE=', RAW_BASE, 'SERVERLESS=', SERVERLESS_URL);
 })();
+
