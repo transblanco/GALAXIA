@@ -27,6 +27,11 @@
     "avance": 0,
     "carpetaDrive": "https://drive.google.com/drive/folders/1OFkdidtcfJ2IwNCEpPL5ieaVat58i5pG?usp=drive_link",
     "imagenKpi": "https://i.postimg.cc/1tCfzP6d/1-1-1-1.jpg",
-    "comentarios": []
+    "comentarios": [
+      {
+        "text": "prueba comentario 1",
+        "ts": 1759120383489
+      }
+    ]
   }
 ]
