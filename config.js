@@ -1,14 +1,12 @@
-// config.js
-const CONFIG = {
-  token: "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",  // tu GitHub Personal Access Token
-  repoOwner: "transblanco", // tu usuario u organización en GitHub
-  repoName: "GALAXIA",     // el nombre del repositorio
-  branch: "main",          // la rama donde guardamos los JSON
-  files: {
-    tareas: "tareas.json",         // archivo donde se guardan las tareas
-    areas: "areas.json",           // archivo para las áreas
-    responsables: "responsables.json" // archivo para responsables
-  }
-};
+// config.js (en la raíz del repo)
+// ATENCIÓN: este archivo contiene tu token. Lo estás guardando en el repo por decisión propia.
 
-export default CONFIG;
+const CONFIG = {
+  GITHUB_TOKEN: "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",
+  REPO_OWNER: "transblanco",
+  REPO_NAME: "GALAXIA",
+  BRANCH: "main",
+  FILE_TASKS: "tareas.json",
+  FILE_AREAS: "areas.json",
+  FILE_RESP: "responsables.json"
+};
