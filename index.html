@@ -29,15 +29,13 @@
     .modal-overlay { background: rgba(0,0,0,0.95); position: absolute; inset: 0; }
     /* Make modal content slightly less transparent (solid) */
     .modal-card { background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); }
-    /* Responsive tweak */
     @media (max-width:820px){ .md\:grid-cols-2{ grid-template-columns: 1fr; } }
   </style>
 </head>
 <body class="min-h-screen">
 
-  <!-- FRONTEND CONFIG (separate file) -->
+  <!-- Carga los JS de inicio desde /GALAXIA/ -->
   <script src="/GALAXIA/frontend-config.js"></script>
-  <!-- APP logic (exposes window.APP functions for read/write via serverless) -->
   <script src="/GALAXIA/app.js"></script>
 
   <div class="max-w-6xl mx-auto p-6">
@@ -71,7 +69,7 @@
     </section>
   </div>
 
-  <!-- CREATE Modal (centred; overlay 95%) -->
+  <!-- CREATE Modal -->
   <div id="createModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
     <div class="modal-overlay"></div>
     <div class="relative max-w-3xl w-full mx-4 modal-card rounded-lg p-6">
@@ -120,7 +118,7 @@
         </div>
 
         <div>
-          <label class="small-muted block mb-1">Metas por nivel (0–100)</label>
+          <label class="small-muted block mb-1">Metas por nivel (0–100) — Empiezan en Nivel 0</label>
           <div id="nivelesInputs" class="grid gap-2"></div>
         </div>
 
@@ -137,7 +135,7 @@
     </div>
   </div>
 
-  <!-- ADD (area/responsable) Modal -->
+  <!-- ADD Modal -->
   <div id="addModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
     <div class="modal-overlay"></div>
     <div class="relative max-w-md w-full mx-4 modal-card rounded-lg p-6">
@@ -218,18 +216,14 @@
   </div>
 
 <script>
-/* index.html UI glue: usa window.APP.* (serverless-based) que debes tener en /app.js
-   - FRONTEND_CONFIG debe existir (frontend-config.js). */
+/* index.html UI glue: usa window.APP.* (serverless-based) que debes tener en /GALAXIA/app.js
+   - FRONTEND_CONFIG debe existir (en /GALAXIA/frontend-config.js). */
 
 (function(){
   // Safety checks
   if(typeof FRONTEND_CONFIG === 'undefined') {
-    alert('Falta frontend-config.js (FRONTEND_CONFIG). Añádelo en la raíz.');
+    alert('Falta frontend-config.js (FRONTEND_CONFIG). Añádelo en /GALAXIA/frontend-config.js');
     throw new Error('FRONTEND_CONFIG missing');
-  }
-  if(typeof window.APP === 'undefined') {
-    // APP may be loaded asynchronously (netlify function wrapper). We'll wait below.
-    console.log('Esperando a window.APP (si existe)...');
   }
 
   // Local state
@@ -264,10 +258,19 @@
       try {
         const result = await window.APP.loadAll();
         // result { tareas, areas, respons } expected
-        tasks = result && result.tareas ? result.tareas : (result || []).tareas || result || [];
-        // handle both structures
-        if(result && result.areas) areas = result.areas;
-        if(result && result.respons) respons = result.respons;
+        // normalize various possible structures
+        if(result && Array.isArray(result.tareas)) tasks = result.tareas;
+        else if(result && result.tareas && Array.isArray(result.tareas.tareas)) tasks = result.tareas.tareas;
+        else if(Array.isArray(result)) tasks = result;
+        else tasks = result && result.tareas ? result.tareas : [];
+
+        if(result && Array.isArray(result.areas)) areas = result.areas;
+        else if(result && result.areas && Array.isArray(result.areas)) areas = result.areas;
+        else areas = areas || [];
+
+        if(result && Array.isArray(result.respons)) respons = result.respons;
+        else if(result && result.respons && Array.isArray(result.respons)) respons = result.respons;
+        else respons = respons || [];
       } catch(e){
         console.warn('Error window.APP.loadAll', e);
       }
@@ -287,6 +290,7 @@
         respons = rR.ok ? await rR.json() : [];
       } catch(e){ respons = []; }
     }
+
     // normalize arrays if necessary
     if(!Array.isArray(tasks)) tasks = tasks.tareas || [];
     if(!Array.isArray(areas)) areas = areas.areas || [];
@@ -339,7 +343,7 @@
     document.getElementById('taskTable').innerHTML = html;
   }
 
-  /* ---------- Create modal logic ---------- */
+  /* ---------- Create modal logic (niveles empiezan en 0) ---------- */
   function openCreateModal(){
     if(!admin){ alert('Solo admin puede crear tareas. Inicia sesión con el código.'); return; }
     document.getElementById('createTitle').innerText = '➕ Nueva tarea';
@@ -353,7 +357,8 @@
   function renderNivelInputs(){
     const cnt = document.getElementById('nivelesInputs'); cnt.innerHTML = '';
     const how = parseInt(document.getElementById('inputCantidadNiv').value) || 1;
-    for(let i=1;i<=how;i++){
+    // now levels go from 0 to how-1
+    for(let i=0;i<how;i++){
       const wrap = document.createElement('div'); wrap.className='flex gap-2 items-center';
       const label = document.createElement('label'); label.textContent = `Nivel ${i}:`; label.className='small-muted w-24';
       const input = document.createElement('input'); input.type='number'; input.min=0; input.max=100; input.value=0; input.id=`meta_nivel_${i}`;
@@ -378,8 +383,10 @@
     const responsable = document.getElementById('selectResp').value;
     const cantidad = parseInt(document.getElementById('inputCantidadNiv').value) || 1;
     const metas = [];
-    for(let i=1;i<=cantidad;i++){
-      const val = parseInt((document.getElementById(`meta_nivel_${i}`)||{value:0}).value) || 0;
+    // levels start at 0
+    for(let i=0;i<cantidad;i++){
+      const el = document.getElementById(`meta_nivel_${i}`);
+      const val = parseInt((el || {value:0}).value) || 0;
       metas.push({ nivel: i, valor: val, cumplido: false });
     }
     const avance = parseInt(document.getElementById('inputAvance').value) || 0;
@@ -407,7 +414,6 @@
       if(window.APP && typeof window.APP.saveTareas === 'function'){
         await window.APP.saveTareas(tasks);
       } else {
-        // fallback: try APP.saveTasks (older name)
         if(window.APP && typeof window.APP.saveTasks === 'function') await window.APP.saveTasks(tasks);
       }
       await loadAll();
@@ -582,7 +588,7 @@
   // map newTaskBtn
   document.getElementById('newTaskBtn').addEventListener('click', openCreateModal);
 
-  // Expose some functions to global so HTML onclick can call them (openDetail used inline)
+  // Expose global functions used in HTML
   window.openDetail = openDetail;
   window.openAddModal = openAddModal;
   window.openCreateModal = openCreateModal;
@@ -607,3 +613,4 @@
 </script>
 </body>
 </html>
+
