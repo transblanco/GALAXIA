@@ -3,32 +3,42 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Galaxia KPI - Gestor (Conexión GitHub)</title>
+  <title>Galaxia KPI — Gestor</title>
 
-  <!-- Tailwind CDN -->
+  <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    :root{
+    :root {
       --bg: #0f1724;
-      --card: #111827;
+      --card: #0b1220;
       --muted: #9ca3af;
       --accent: #3b82f6;
       --accent-green: #10b981;
     }
-    body { background: var(--bg); color: #e6eef8; }
+    body { background: var(--bg); color: #e6eef8; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
     .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); }
-    .tag { font-weight:600; font-size:.8rem; padding:.25rem .5rem; border-radius:9999px; color:#fff; display:inline-block; margin-right:6px; margin-bottom:4px; }
-    .small-muted { color:var(--muted); font-size:.85rem; }
+    .tag { font-weight:600; font-size:.82rem; padding:.25rem .55rem; border-radius:9999px; color:#fff; display:inline-block; margin-right:6px; margin-bottom:4px; }
+    .small-muted { color:var(--muted); font-size:.86rem; }
     .row-hover:hover { background: rgba(255,255,255,0.02); cursor:pointer; }
     .scroll-y { max-height:220px; overflow-y:auto; }
-    .level-badge { display:inline-flex; align-items:center; gap:6px; padding:.25rem .5rem; border-radius:10px; font-size:.8rem; margin-right:6px; }
+    .level-badge { display:inline-flex; align-items:center; gap:6px; padding:.25rem .5rem; border-radius:10px; font-size:.82rem; margin-right:6px; background: rgba(255,255,255,0.02); }
+    .btn { transition: all .12s ease; }
+    .btn:hover { transform: translateY(-1px); }
+    /* Modal overlay with 95% opacity */
+    .modal-overlay { background: rgba(0,0,0,0.95); position: absolute; inset: 0; }
+    /* Make modal content slightly less transparent (solid) */
+    .modal-card { background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); }
+    /* Responsive tweak */
+    @media (max-width:820px){ .md\:grid-cols-2{ grid-template-columns: 1fr; } }
   </style>
 </head>
 <body class="min-h-screen">
 
-  <!-- IMPORTANT: load config.js (local) FIRST -->
-  <script src="./config.js"></script>
+  <!-- FRONTEND CONFIG (separate file) -->
+  <script src="/frontend-config.js"></script>
+  <!-- APP logic (exposes window.APP functions for read/write via serverless) -->
+  <script src="/app.js"></script>
 
   <div class="max-w-6xl mx-auto p-6">
 
@@ -36,13 +46,13 @@
     <header class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl font-bold text-white">📊 Galaxia KPI — Gestor</h1>
-        <p class="small-muted mt-1">Seguimiento de auditoría — Backus (Galaxia)</p>
+        <p class="small-muted mt-1">Seguimiento auditoría — Backus (Galaxia)</p>
       </div>
 
       <div class="flex items-center gap-3">
         <div id="adminBadge" class="hidden px-3 py-1 rounded-full bg-green-600 text-black font-semibold">ADMIN</div>
-        <button id="loginBtn" class="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500">🔑 Ingresar Admin</button>
-        <button id="newTaskBtn" class="px-3 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 hidden">➕ Nueva tarea</button>
+        <button id="loginBtn" class="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 btn">🔑 Ingresar Admin</button>
+        <button id="newTaskBtn" class="px-3 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 btn hidden">➕ Nueva tarea</button>
       </div>
     </header>
 
@@ -50,6 +60,7 @@
     <div class="flex items-center justify-between gap-4 mb-6">
       <div class="flex items-center gap-3">
         <div class="card px-4 py-2 rounded-md small-muted">Tareas guardadas: <span id="countTasks" class="font-semibold text-white ml-2">0</span></div>
+        <div class="card px-4 py-2 rounded-md small-muted">Áreas: <span id="countAreas" class="font-semibold text-white ml-2">0</span></div>
       </div>
       <div class="small-muted">Conexión: <span id="statusAdmin" class="font-semibold text-white ml-2">Usuario</span></div>
     </div>
@@ -60,10 +71,10 @@
     </section>
   </div>
 
-  <!-- MODAL: Crear / Editar Tarea (centrado, menos transparente) -->
+  <!-- CREATE Modal (centred; overlay 95%) -->
   <div id="createModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/95"></div>
-    <div class="relative max-w-3xl w-full mx-4 card rounded-lg p-6">
+    <div class="modal-overlay"></div>
+    <div class="relative max-w-3xl w-full mx-4 modal-card rounded-lg p-6">
       <div class="flex justify-between items-center mb-4">
         <h2 id="createTitle" class="text-xl font-bold">➕ Nueva tarea</h2>
         <button class="text-gray-300" onclick="closeCreateModal()">✕</button>
@@ -81,7 +92,7 @@
             <select id="selectAreas" multiple class="w-full p-2 rounded bg-transparent border border-zinc-700"></select>
           </div>
           <div class="col-span-1 flex items-end gap-2">
-            <button type="button" class="px-3 py-2 bg-indigo-600 rounded" onclick="openAddModal('area')">➕ Nueva Área</button>
+            <button type="button" class="px-3 py-2 bg-indigo-600 rounded btn" onclick="openAddModal('area')">➕ Nueva Área</button>
           </div>
 
           <div class="col-span-1">
@@ -89,7 +100,7 @@
             <select id="selectResp" class="w-full p-2 rounded bg-transparent border border-zinc-700"></select>
           </div>
           <div class="col-span-1 flex items-end gap-2">
-            <button type="button" class="px-3 py-2 bg-indigo-600 rounded" onclick="openAddModal('responsable')">➕ Nuevo</button>
+            <button type="button" class="px-3 py-2 bg-indigo-600 rounded btn" onclick="openAddModal('responsable')">➕ Nuevo</button>
           </div>
         </div>
 
@@ -109,7 +120,7 @@
         </div>
 
         <div>
-          <label class="small-muted block mb-1">Metas por nivel (0-100)</label>
+          <label class="small-muted block mb-1">Metas por nivel (0–100)</label>
           <div id="nivelesInputs" class="grid gap-2"></div>
         </div>
 
@@ -126,17 +137,17 @@
     </div>
   </div>
 
-  <!-- MODAL: AGREGAR NUEVA AREA / RESPONSABLE -->
+  <!-- ADD (area/responsable) Modal -->
   <div id="addModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/95"></div>
-    <div class="relative max-w-md w-full mx-4 card rounded-lg p-6">
+    <div class="modal-overlay"></div>
+    <div class="relative max-w-md w-full mx-4 modal-card rounded-lg p-6">
       <div class="flex justify-between items-center mb-4">
         <h3 id="addTitle" class="text-lg font-bold">➕ Nuevo</h3>
         <button class="text-gray-300" onclick="closeAddModal()">✕</button>
       </div>
-
       <div class="grid gap-3">
         <input id="addInput" class="p-2 rounded bg-transparent border border-zinc-700" placeholder="Nombre...">
+        <input id="addColor" class="p-2 rounded bg-transparent border border-zinc-700" placeholder="#HEX (opcional)">
         <div class="flex justify-end gap-2">
           <button class="px-4 py-2 rounded bg-zinc-600" onclick="closeAddModal()">Cancelar</button>
           <button class="px-4 py-2 rounded bg-indigo-600" onclick="saveAdd()">Guardar</button>
@@ -145,10 +156,10 @@
     </div>
   </div>
 
-  <!-- MODAL: Detalle tarea -->
+  <!-- DETAIL Modal -->
   <div id="detailModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/95"></div>
-    <div class="relative max-w-3xl w-full mx-4 card rounded-lg p-6">
+    <div class="modal-overlay"></div>
+    <div class="relative max-w-3xl w-full mx-4 modal-card rounded-lg p-6">
       <div class="flex justify-between items-start gap-4">
         <div>
           <h2 id="detailTitle" class="text-2xl font-bold"></h2>
@@ -191,7 +202,7 @@
 
             <div class="flex gap-2 mt-2">
               <input id="comentarioText" placeholder="Agregar comentario..." class="p-2 rounded bg-transparent border border-zinc-700 flex-1">
-              <button class="px-3 py-2 rounded bg-indigo-600" onclick="addComment()">Comentar</button>
+              <button id="btnAddComment" class="px-3 py-2 rounded bg-indigo-600" onclick="addComment()">Comentar</button>
             </div>
           </div>
         </div>
@@ -207,500 +218,392 @@
   </div>
 
 <script>
-/* ======================================================
-   App JS: Conexión GitHub (usa CONFIG desde config.js)
-   ====================================================== */
+/* index.html UI glue: usa window.APP.* (serverless-based) que debes tener en /app.js
+   - FRONTEND_CONFIG debe existir (frontend-config.js). */
 
-if (typeof CONFIG === 'undefined') {
-  alert('Falta config.js con CONFIG. Crea config.js localmente con tu token y parámetros.');
-  throw new Error('CONFIG missing');
-}
-
-const OWNER = CONFIG.REPO_OWNER;
-const REPO = CONFIG.REPO_NAME;
-const BRANCH = CONFIG.BRANCH || 'main';
-const TOKEN = CONFIG.GITHUB_TOKEN;
-const FILE_TASKS = CONFIG.FILE_TASKS || 'tareas.json';
-const FILE_AREAS = CONFIG.FILE_AREAS || 'areas.json';
-const FILE_RESP = CONFIG.FILE_RESP || 'responsables.json';
-
-let admin = false;
-let tasks = [];
-let areas = []; // array of {nombre, color}
-let respons = []; // array of strings
-let currentIndex = null;
-
-/* -----------------------------
-   Helpers: base64 UTF8
-   ----------------------------- */
-function encodeContent(str){
-  // encode UTF-8 to base64
-  return btoa(unescape(encodeURIComponent(str)));
-}
-function decodeContent(base64){
-  try {
-    return decodeURIComponent(escape(atob(base64)));
-  } catch(e) {
-    // fallback (if binary)
-    return atob(base64);
+(function(){
+  // Safety checks
+  if(typeof FRONTEND_CONFIG === 'undefined') {
+    alert('Falta frontend-config.js (FRONTEND_CONFIG). Añádelo en la raíz.');
+    throw new Error('FRONTEND_CONFIG missing');
   }
-}
-
-/* -----------------------------
-   GitHub API helpers
-   ----------------------------- */
-const GH_HEADERS = {
-  'Authorization': 'token ' + TOKEN,
-  'Accept': 'application/vnd.github+json'
-};
-
-async function ghGetFile(path){
-  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(path)}?ref=${BRANCH}`;
-  const res = await fetch(url, { headers: GH_HEADERS });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`[ghGetFile] ${res.status} ${res.statusText}`);
-  const data = await res.json();
-  return data; // includes .content (base64) and .sha
-}
-
-async function ghPutFile(path, contentStr, message, sha=null){
-  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(path)}`;
-  const body = {
-    message: message || `Update ${path}`,
-    content: encodeContent(contentStr),
-    branch: BRANCH
-  };
-  if (sha) body.sha = sha;
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: { ...GH_HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  const json = await res.json();
-  if (!res.ok) {
-    console.error('ghPutFile error', json);
-    throw new Error(`Error writing ${path}: ${json.message || res.statusText}`);
+  if(typeof window.APP === 'undefined') {
+    // APP may be loaded asynchronously (netlify function wrapper). We'll wait below.
+    console.log('Esperando a window.APP (si existe)...');
   }
-  return json;
-}
 
-/* -----------------------------
-   Ensure repo files exist or create them
-   ----------------------------- */
-async function ensureRepoFiles(){
-  // tasks
-  try {
-    const t = await ghGetFile(FILE_TASKS);
-    if (!t) {
-      await ghPutFile(FILE_TASKS, JSON.stringify([], null, 2), 'Create tasks file');
+  // Local state
+  let admin = false;
+  let tasks = [];
+  let areas = [];
+  let respons = [];
+  let currentIndex = null;
+
+  // Helpers
+  function escapeHtml(s){ if(!s && s !== 0) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
+  function formatPct(v){ if(v===null||v===undefined||v==='') return '—'; return `${v}%`; }
+  function compareItems(a,b){ if(!a) return 1; if(!b) return -1; const pa=(a+'').split('.').map(x=>parseInt(x)||0); const pb=(b+'').split('.').map(x=>parseInt(x)||0); for(let i=0;i<Math.max(pa.length,pb.length);i++){ if((pa[i]||0) < (pb[i]||0)) return -1; if((pa[i]||0) > (pb[i]||0)) return 1; } return 0; }
+  function getAreaColorByName(name){ const f = areas.find(x=>x.nombre === name); return f ? f.color : '#6b7280'; }
+
+  // Wait for window.APP to exist (timeout fallback)
+  async function waitForApp(timeout = 5000){
+    if(window.APP) return;
+    return new Promise((resolve) => {
+      const start = Date.now();
+      const id = setInterval(()=> {
+        if(window.APP) { clearInterval(id); resolve(); }
+        if(Date.now() - start > timeout){ clearInterval(id); resolve(); }
+      }, 150);
+    });
+  }
+
+  // Load data via window.APP
+  async function loadAll(){
+    await waitForApp();
+    if(window.APP && typeof window.APP.loadAll === 'function'){
+      try {
+        const result = await window.APP.loadAll();
+        // result { tareas, areas, respons } expected
+        tasks = result && result.tareas ? result.tareas : (result || []).tareas || result || [];
+        // handle both structures
+        if(result && result.areas) areas = result.areas;
+        if(result && result.respons) respons = result.respons;
+      } catch(e){
+        console.warn('Error window.APP.loadAll', e);
+      }
+    } else {
+      // fallback: try to fetch raw files (public)
+      const rawBase = FRONTEND_CONFIG.RAW_BASE || '';
+      try {
+        const rT = await fetch(rawBase + (FRONTEND_CONFIG.FILES.tareas || 'tareas.json'));
+        tasks = rT.ok ? await rT.json() : [];
+      } catch(e){ tasks = []; }
+      try {
+        const rA = await fetch(rawBase + (FRONTEND_CONFIG.FILES.areas || 'areas.json'));
+        areas = rA.ok ? await rA.json() : [];
+      } catch(e){ areas = []; }
+      try {
+        const rR = await fetch(rawBase + (FRONTEND_CONFIG.FILES.responsables || 'responsables.json'));
+        respons = rR.ok ? await rR.json() : [];
+      } catch(e){ respons = []; }
     }
-  } catch(e){ console.error(e); alert('Error checking/creating tasks.json: ' + e.message); }
+    // normalize arrays if necessary
+    if(!Array.isArray(tasks)) tasks = tasks.tareas || [];
+    if(!Array.isArray(areas)) areas = areas.areas || [];
+    if(!Array.isArray(respons)) respons = respons.responsables || respons;
 
-  // areas (default)
-  try {
-    const a = await ghGetFile(FILE_AREAS);
-    if (!a) {
-      const defaultAreas = [
-        { nombre: 'Comercial', color: '#10b981' },
-        { nombre: 'Backus', color: '#f59e0b' },
-        { nombre: 'RRHH', color: '#3b82f6' },
-        { nombre: 'Operaciones', color: '#ef4444' }
-      ];
-      await ghPutFile(FILE_AREAS, JSON.stringify(defaultAreas, null, 2), 'Create areas file');
+    renderAreasAndResps();
+    renderTable();
+  }
+
+  /* ---------- Render UI ---------- */
+  function renderAreasAndResps(){
+    const selA = document.getElementById('selectAreas'); if(selA){ selA.innerHTML = ''; areas.forEach(a=>{ const opt = document.createElement('option'); opt.value = a.nombre; opt.textContent = a.nombre; selA.appendChild(opt); }); }
+    const selR = document.getElementById('selectResp'); if(selR){ selR.innerHTML = ''; respons.forEach(r=>{ const opt = document.createElement('option'); opt.value = r; opt.textContent = r; selR.appendChild(opt); }); }
+    document.getElementById('countAreas').innerText = areas.length || 0;
+  }
+
+  function renderTable(){
+    const arr = [...tasks].sort((x,y)=>compareItems(x.item,y.item));
+    document.getElementById('countTasks').innerText = arr.length || 0;
+    if(arr.length === 0){
+      document.getElementById('taskTable').innerHTML = `<div class="p-8 text-center small-muted">No hay tareas. ${ admin ? 'Crea una con ➕ Nueva tarea' : 'Pide a un administrador crear una tarea.' }</div>`;
+      return;
     }
-  } catch(e){ console.error(e); alert('Error checking/creating areas.json: ' + e.message); }
-
-  // responsables (default)
-  try {
-    const r = await ghGetFile(FILE_RESP);
-    if (!r) {
-      const defaultResp = ['Juan Pérez','María López','William Oliva'];
-      await ghPutFile(FILE_RESP, JSON.stringify(defaultResp, null, 2), 'Create responsables file');
-    }
-  } catch(e){ console.error(e); alert('Error checking/creating responsables.json: ' + e.message); }
-}
-
-/* -----------------------------
-   Load all data from repo
-   ----------------------------- */
-async function loadAllData(){
-  try {
-    const ft = await ghGetFile(FILE_TASKS);
-    tasks = ft ? JSON.parse(decodeContent(ft.content)) : [];
-  } catch(e){ console.warn('load tasks', e); tasks = []; }
-
-  try {
-    const fa = await ghGetFile(FILE_AREAS);
-    areas = fa ? JSON.parse(decodeContent(fa.content)) : [];
-  } catch(e){ console.warn('load areas', e); areas = []; }
-
-  try {
-    const fr = await ghGetFile(FILE_RESP);
-    respons = fr ? JSON.parse(decodeContent(fr.content)) : [];
-  } catch(e){ console.warn('load resp', e); respons = []; }
-
-  renderAreasAndResps(); // fill selects
-  renderTable();
-}
-
-/* -----------------------------
-   Save functions
-   ----------------------------- */
-async function saveTasksToRepo(){
-  try {
-    const existing = await ghGetFile(FILE_TASKS);
-    const sha = existing ? existing.sha : null;
-    await ghPutFile(FILE_TASKS, JSON.stringify(tasks, null, 2), 'Update tareas.json', sha);
-  } catch(e){
-    console.error(e);
-    alert('Error guardando tareas en repo: ' + e.message);
-  }
-}
-
-async function saveAreasToRepo(){
-  try {
-    const existing = await ghGetFile(FILE_AREAS);
-    const sha = existing ? existing.sha : null;
-    await ghPutFile(FILE_AREAS, JSON.stringify(areas, null, 2), 'Update areas.json', sha);
-  } catch(e){
-    console.error(e);
-    alert('Error guardando areas en repo: ' + e.message);
-  }
-}
-
-async function saveResponsToRepo(){
-  try {
-    const existing = await ghGetFile(FILE_RESP);
-    const sha = existing ? existing.sha : null;
-    await ghPutFile(FILE_RESP, JSON.stringify(respons, null, 2), 'Update responsables.json', sha);
-  } catch(e){
-    console.error(e);
-    alert('Error guardando responsables en repo: ' + e.message);
-  }
-}
-
-/* -----------------------------
-   Utilities
-   ----------------------------- */
-function compareItems(a,b){
-  if(!a) return 1;
-  if(!b) return -1;
-  const pa = (a+'').split('.').map(x=>parseInt(x)||0);
-  const pb = (b+'').split('.').map(x=>parseInt(x)||0);
-  for(let i=0;i<Math.max(pa.length,pb.length);i++){
-    if((pa[i]||0) < (pb[i]||0)) return -1;
-    if((pa[i]||0) > (pb[i]||0)) return 1;
-  }
-  return 0;
-}
-function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
-function formatPct(n){ if(n===null||n===undefined||n==='') return '—'; return `${n}%`; }
-
-/* -----------------------------
-   Render UI: table, selects
-   ----------------------------- */
-function renderAreasAndResps(){
-  const selA = document.getElementById('selectAreas'); selA.innerHTML='';
-  areas.forEach(a => {
-    const opt = document.createElement('option'); opt.value=a.nombre; opt.textContent=a.nombre; selA.appendChild(opt);
-  });
-  const selR = document.getElementById('selectResp'); selR.innerHTML='';
-  respons.forEach(r=> {
-    const opt = document.createElement('option'); opt.value=r; opt.textContent=r; selR.appendChild(opt);
-  });
-}
-
-function getAreaColorByName(name){
-  const found = areas.find(x=>x.nombre === name);
-  return found ? found.color : '#999';
-}
-
-function renderTable(){
-  const arr = [...tasks].sort((x,y)=>compareItems(x.item,y.item));
-  document.getElementById('countTasks').innerText = arr.length;
-  if(arr.length===0){
-    document.getElementById('taskTable').innerHTML = `<div class="p-8 text-center small-muted">No hay tareas. ${ admin ? 'Crea una con ➕ Nueva tarea' : 'Pide a un administrador crear una tarea.' }</div>`;
-    return;
-  }
-
-  let html = `<table class="w-full text-left"><thead>
-    <tr class="text-zinc-400 text-sm">
-      <th class="p-3">Item</th>
-      <th class="p-3">Título</th>
-      <th class="p-3">Áreas</th>
-      <th class="p-3">Responsable</th>
-      <th class="p-3">Niveles</th>
-      <th class="p-3">Carpeta</th>
-    </tr></thead><tbody class="space-y-2">`;
-
-  arr.forEach((t) => {
-    const realIndex = tasks.indexOf(t);
-    const areasHtml = t.areas.map(a => `<span class="tag" style="background:${getAreaColorByName(a)}">${escapeHtml(a)}</span>`).join(' ');
-    // levels summary: show small badges with value and check mark
-    const levelsHtml = t.niveles.map(n => {
-      const checked = n.cumplido ? '✅' : '⬜';
-      return `<span class="level-badge" style="background: rgba(255,255,255,0.03)">${checked} N${n.nivel}: ${formatPct(n.valor)}</span>`;
-    }).join(' ');
-    html += `
-      <tr class="row-hover" onclick="openDetail(${realIndex})">
+    let html = `<table class="w-full text-left"><thead>
+      <tr class="text-zinc-400 text-sm">
+        <th class="p-3">Item</th>
+        <th class="p-3">Título</th>
+        <th class="p-3">Áreas</th>
+        <th class="p-3">Responsable</th>
+        <th class="p-3">Niveles</th>
+        <th class="p-3">Carpeta</th>
+      </tr></thead><tbody class="space-y-2">`;
+    arr.forEach(t => {
+      const idx = tasks.indexOf(t);
+      const areasHtml = (t.areas||[]).map(a => `<span class="tag" style="background:${getAreaColorByName(a)}">${escapeHtml(a)}</span>`).join(' ');
+      const levelsHtml = (t.niveles||[]).map(n => {
+        const c = n.cumplido ? '✅' : '⬜';
+        return `<span class="level-badge">${c} N${n.nivel}: ${formatPct(n.valor)}</span>`;
+      }).join(' ');
+      html += `<tr class="row-hover" onclick="openDetail(${idx})">
         <td class="p-3 align-top"><div class="font-semibold">${escapeHtml(t.item)}</div></td>
         <td class="p-3 align-top"><div class="font-medium">${escapeHtml(t.titulo)}</div></td>
         <td class="p-3 align-top">${areasHtml}</td>
         <td class="p-3 align-top">${escapeHtml(t.responsable)}</td>
         <td class="p-3 align-top">${levelsHtml}</td>
         <td class="p-3 align-top"><a class="text-indigo-400 hover:underline" href="${escapeHtml(t.carpetaDrive||'#')}" target="_blank">📂 Abrir</a></td>
-      </tr>
-    `;
-  });
-
-  html += `</tbody></table>`;
-  document.getElementById('taskTable').innerHTML = html;
-}
-
-/* -----------------------------
-   Create modal logic
-   ----------------------------- */
-function openCreateModal(){
-  if(!admin){ alert('Solo admin puede crear tareas. Inicia sesión con el código.'); return; }
-  document.getElementById('createTitle').innerText = '➕ Nueva tarea';
-  document.getElementById('createForm').reset();
-  renderAreasAndResps();
-  renderNivelInputs();
-  document.getElementById('createModal').classList.remove('hidden');
-}
-function closeCreateModal(){ document.getElementById('createModal').classList.add('hidden'); }
-
-function renderNivelInputs(){
-  const cnt = document.getElementById('nivelesInputs');
-  cnt.innerHTML = '';
-  const how = parseInt(document.getElementById('inputCantidadNiv').value) || 1;
-  for(let i=1;i<=how;i++){
-    const wrap = document.createElement('div'); wrap.className='flex gap-2 items-center';
-    const label = document.createElement('label'); label.textContent = `Nivel ${i}:`; label.className='small-muted w-24';
-    const input = document.createElement('input');
-    input.type='number'; input.min=0; input.max=100; input.value=0; input.id = `meta_nivel_${i}`;
-    input.className='p-2 rounded bg-transparent border border-zinc-700 w-32';
-    const pct = document.createElement('span'); pct.className='small-muted'; pct.innerText = '%';
-    // when input changes, ensure between 0-100
-    input.addEventListener('input', ()=> {
-      let v = parseInt(input.value) || 0;
-      if(v<0) v=0; if(v>100) v=100;
-      input.value = v;
+      </tr>`;
     });
-    wrap.appendChild(label); wrap.appendChild(input); wrap.appendChild(pct);
-    cnt.appendChild(wrap);
+    html += `</tbody></table>`;
+    document.getElementById('taskTable').innerHTML = html;
   }
-}
 
-/* Submit create form */
-document.getElementById('createForm').addEventListener('submit', async function(e){
-  e.preventDefault();
-  if(!admin){ alert('Solo admin puede crear tareas.'); return; }
-
-  const item = document.getElementById('inputItem').value.trim();
-  const titulo = document.getElementById('inputTitulo').value.trim();
-  const seleccion = Array.from(document.getElementById('selectAreas').selectedOptions).map(o=>o.value);
-  const responsable = document.getElementById('selectResp').value;
-  const cantidad = parseInt(document.getElementById('inputCantidadNiv').value) || 1;
-  const metas = [];
-  for(let i=1;i<=cantidad;i++){
-    const val = parseInt((document.getElementById(`meta_nivel_${i}`)||{value:0}).value) || 0;
-    metas.push({ nivel: i, valor: val, cumplido: false });
+  /* ---------- Create modal logic ---------- */
+  function openCreateModal(){
+    if(!admin){ alert('Solo admin puede crear tareas. Inicia sesión con el código.'); return; }
+    document.getElementById('createTitle').innerText = '➕ Nueva tarea';
+    document.getElementById('createForm').reset();
+    renderAreasAndResps();
+    renderNivelInputs();
+    document.getElementById('createModal').classList.remove('hidden');
   }
-  const avance = parseInt(document.getElementById('inputAvance').value) || 0;
-  const carpetaDrive = document.getElementById('inputDrive').value.trim();
-  const imagenKpi = document.getElementById('inputImagen').value.trim();
+  function closeCreateModal(){ document.getElementById('createModal').classList.add('hidden'); }
 
-  if(!item || !titulo){ alert('Item y Título son obligatorios'); return; }
-
-  const newTask = {
-    id: Date.now(),
-    item,
-    titulo,
-    areas: seleccion.length ? seleccion : ['Sin Área'],
-    responsable: responsable || 'Sin responsable',
-    niveles: metas,
-    avance,
-    carpetaDrive,
-    imagenKpi,
-    comentarios: []
-  };
-
-  tasks.push(newTask);
-  await saveTasksToRepo();
-  renderTable();
-  closeCreateModal();
-});
-
-/* -----------------------------
-   Detail modal logic
-   ----------------------------- */
-function openDetail(idx){
-  currentIndex = idx;
-  const t = tasks[idx];
-  if(!t) return;
-  document.getElementById('detailTitle').innerText = t.titulo;
-  document.getElementById('detailItem').innerText = `Item: ${t.item}`;
-  const areasWrap = document.getElementById('detailAreas'); areasWrap.innerHTML = '';
-  t.areas.forEach(a=>{
-    const s = document.createElement('span'); s.className='tag'; s.style.background = getAreaColorByName(a); s.innerText = a;
-    areasWrap.appendChild(s);
-  });
-
-  document.getElementById('detailResp').innerText = t.responsable || '—';
-  const nivelesUL = document.getElementById('detailNiveles'); nivelesUL.innerHTML = '';
-  t.niveles.forEach((n, i) => {
-    const li = document.createElement('li'); li.className='flex items-center gap-3 py-1';
-    const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = !!n.cumplido; chk.disabled = !admin;
-    chk.addEventListener('change', async () => {
-      if(!admin){ chk.checked = !chk.checked; alert('Solo admin puede cambiar niveles'); return; }
-      n.cumplido = chk.checked;
-      // if checked and meta is numeric -> set avance to valor
-      if(n.cumplido && Number.isFinite(n.valor)) t.avance = n.valor;
-      await saveTasksToRepo();
-      renderTable();
-      updateDetailProgress(t);
-    });
-    const label = document.createElement('span'); label.innerHTML = `<strong>Nivel ${n.nivel}</strong> — ${formatPct(n.valor)}`;
-    li.appendChild(chk); li.appendChild(label);
-    nivelesUL.appendChild(li);
-  });
-
-  // advance UI
-  updateDetailProgress(t);
-  document.getElementById('avanceEditWrap').style.display = admin ? 'block' : 'none';
-  document.getElementById('avanceEdit').value = t.avance || 0;
-  document.getElementById('detailDrive').href = t.carpetaDrive || '#';
-  document.getElementById('detailDrive').innerText = t.carpetaDrive ? 'Abrir carpeta' : '—';
-
-  renderComments(t);
-
-  const img = document.getElementById('detailImagen');
-  img.src = t.imagenKpi ? t.imagenKpi : 'https://via.placeholder.com/800x400.png?text=Sin+imagen';
-  img.alt = 'Imagen KPI';
-
-  document.getElementById('editSaveBtn').style.display = admin ? 'inline-block' : 'none';
-  document.getElementById('detailModal').classList.remove('hidden');
-
-  document.getElementById('editSaveBtn').onclick = async function(){
-    if(!admin){ alert('Solo admin puede guardar cambios'); return; }
-    const newAv = parseInt(document.getElementById('avanceEdit').value) || 0;
-    t.avance = Math.min(100, Math.max(0, newAv));
-    await saveTasksToRepo();
-    renderTable();
-    updateDetailProgress(t);
-    alert('Cambios guardados ✅');
-  };
-}
-function closeDetailModal(){ currentIndex = null; document.getElementById('detailModal').classList.add('hidden'); }
-function updateDetailProgress(t){ const bar = document.getElementById('detailProgressBar'); const display = document.getElementById('avanceDisplay'); const value = t.avance || 0; bar.style.width = value + '%'; display.innerText = value + '%'; }
-
-/* -----------------------------
-   Comments
-   ----------------------------- */
-function renderComments(t){
-  const ul = document.getElementById('detailComentarios'); ul.innerHTML='';
-  (t.comentarios||[]).slice().reverse().forEach(c => {
-    const li = document.createElement('li'); li.className='mb-2 p-2 bg-zinc-800 rounded';
-    const ts = new Date(c.ts||Date.now()).toLocaleString();
-    li.innerHTML = `<div class="small-muted text-xs">${escapeHtml(ts)}</div><div class="mt-1">${escapeHtml(c.text)}</div>`;
-    ul.appendChild(li);
-  });
-}
-async function addComment(){
-  const txt = document.getElementById('comentarioText').value.trim();
-  if(!txt) return;
-  if(currentIndex===null) return;
-  const t = tasks[currentIndex];
-  t.comentarios = t.comentarios || [];
-  t.comentarios.push({ text: txt, ts: Date.now() });
-  await saveTasksToRepo();
-  renderComments(t);
-  document.getElementById('comentarioText').value = '';
-  renderTable();
-}
-
-/* -----------------------------
-   Add Area / Responsable
-   ----------------------------- */
-let addMode = '';
-function openAddModal(mode){
-  addMode = mode;
-  document.getElementById('addTitle').innerText = mode==='area' ? '➕ Nueva Área' : '➕ Nuevo Responsable';
-  document.getElementById('addInput').value = '';
-  document.getElementById('addModal').classList.remove('hidden');
-}
-function closeAddModal(){ document.getElementById('addModal').classList.add('hidden'); }
-
-function saveAdd(){
-  const value = (document.getElementById('addInput').value || '').trim();
-  if(!value) return alert('Ingrese nombre válido');
-  if(addMode === 'area'){
-    // ask color (simple random pick)
-    const pick = prompt('Color HEX para el área (ej: #10b981). Deja vacío para asignar aleatorio:') || '';
-    const color = pick && /^#([0-9A-F]{3}){1,2}$/i.test(pick) ? pick : null;
-    const c = color || (function(){ const p = ['#06b6d4','#7c3aed','#ef4444','#f97316','#14b8a6','#0ea5e9','#a3e635','#f43f5e']; return p[Math.floor(Math.random()*p.length)]; })();
-    if(!areas.find(x=>x.nombre===value)) areas.push({ nombre: value, color: c });
-    saveAreasToRepo().then(()=>{ renderAreasAndResps(); closeAddModal(); alert('Área guardada'); });
-  } else {
-    if(!respons.includes(value)) respons.push(value);
-    saveResponsToRepo().then(()=>{ renderAreasAndResps(); closeAddModal(); alert('Responsable guardado'); });
-  }
-}
-
-/* -----------------------------
-   Admin login (local code)
-   ----------------------------- */
-document.getElementById('loginBtn').addEventListener('click', () => {
-  // if already admin and button text "Cerrar sesión", handle logout
-  if(admin && document.getElementById('loginBtn').innerText === 'Cerrar sesión'){
-    if(confirm('¿Cerrar sesión de admin?')){
-      admin = false;
-      document.getElementById('adminBadge').classList.add('hidden');
-      document.getElementById('newTaskBtn').classList.add('hidden');
-      document.getElementById('statusAdmin').innerText = 'Usuario';
-      document.getElementById('loginBtn').innerText = '🔑 Ingresar Admin';
-      renderTable();
+  function renderNivelInputs(){
+    const cnt = document.getElementById('nivelesInputs'); cnt.innerHTML = '';
+    const how = parseInt(document.getElementById('inputCantidadNiv').value) || 1;
+    for(let i=1;i<=how;i++){
+      const wrap = document.createElement('div'); wrap.className='flex gap-2 items-center';
+      const label = document.createElement('label'); label.textContent = `Nivel ${i}:`; label.className='small-muted w-24';
+      const input = document.createElement('input'); input.type='number'; input.min=0; input.max=100; input.value=0; input.id=`meta_nivel_${i}`;
+      input.className='p-2 rounded bg-transparent border border-zinc-700 w-32';
+      const pct = document.createElement('span'); pct.className='small-muted'; pct.innerText = '%';
+      input.addEventListener('input', ()=> {
+        let v = parseInt(input.value) || 0; if(v<0) v=0; if(v>100) v=100; input.value = v;
+      });
+      wrap.appendChild(label); wrap.appendChild(input); wrap.appendChild(pct);
+      cnt.appendChild(wrap);
     }
-    return;
   }
 
-  const code = prompt('Ingrese código de administrador:');
-  if(code === 'william.oliva'){
-    admin = true;
-    document.getElementById('adminBadge').classList.remove('hidden');
-    document.getElementById('newTaskBtn').classList.remove('hidden');
-    document.getElementById('statusAdmin').innerText = 'ADMIN';
-    document.getElementById('loginBtn').innerText = 'Cerrar sesión';
-    alert('Acceso concedido ✅');
-    renderTable();
-  } else if(code === null){
-    // cancel
-  } else {
-    alert('Código incorrecto ❌');
+  // create form submit
+  document.getElementById('createForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    if(!admin){ alert('Solo admin puede crear tareas.'); return; }
+
+    const item = document.getElementById('inputItem').value.trim();
+    const titulo = document.getElementById('inputTitulo').value.trim();
+    const seleccion = Array.from(document.getElementById('selectAreas').selectedOptions).map(o=>o.value);
+    const responsable = document.getElementById('selectResp').value;
+    const cantidad = parseInt(document.getElementById('inputCantidadNiv').value) || 1;
+    const metas = [];
+    for(let i=1;i<=cantidad;i++){
+      const val = parseInt((document.getElementById(`meta_nivel_${i}`)||{value:0}).value) || 0;
+      metas.push({ nivel: i, valor: val, cumplido: false });
+    }
+    const avance = parseInt(document.getElementById('inputAvance').value) || 0;
+    const carpetaDrive = document.getElementById('inputDrive').value.trim();
+    const imagenKpi = document.getElementById('inputImagen').value.trim();
+
+    if(!item || !titulo){ alert('Item y Título obligatorios'); return; }
+
+    const newTask = {
+      id: Date.now(),
+      item,
+      titulo,
+      areas: seleccion.length ? seleccion : ['Sin Área'],
+      responsable: responsable || 'Sin responsable',
+      niveles: metas,
+      avance,
+      carpetaDrive,
+      imagenKpi,
+      comentarios: []
+    };
+
+    tasks.push(newTask);
+    // save via serverless
+    try {
+      if(window.APP && typeof window.APP.saveTareas === 'function'){
+        await window.APP.saveTareas(tasks);
+      } else {
+        // fallback: try APP.saveTasks (older name)
+        if(window.APP && typeof window.APP.saveTasks === 'function') await window.APP.saveTasks(tasks);
+      }
+      await loadAll();
+      closeCreateModal();
+      alert('Tarea guardada ✅');
+    } catch(err){
+      console.error('Error guardando tarea', err);
+      alert('Error guardando tarea: ' + (err.message||err));
+    }
+  });
+
+  /* ---------- Detail modal ---------- */
+  function openDetail(idx){
+    currentIndex = idx;
+    const t = tasks[idx];
+    if(!t) return;
+    document.getElementById('detailTitle').innerText = t.titulo;
+    document.getElementById('detailItem').innerText = `Item: ${t.item}`;
+    const areasWrap = document.getElementById('detailAreas'); areasWrap.innerHTML = '';
+    (t.areas||[]).forEach(a=>{
+      const s = document.createElement('span'); s.className='tag'; s.style.background = getAreaColorByName(a); s.innerText = a;
+      areasWrap.appendChild(s);
+    });
+
+    document.getElementById('detailResp').innerText = t.responsable || '—';
+    const nivelesUL = document.getElementById('detailNiveles'); nivelesUL.innerHTML = '';
+    (t.niveles||[]).forEach((n,i)=>{
+      const li = document.createElement('li'); li.className='flex items-center gap-3 py-1';
+      const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = !!n.cumplido; chk.disabled = !admin;
+      chk.addEventListener('change', async ()=>{
+        if(!admin){ chk.checked = !chk.checked; alert('Solo admin puede cambiar niveles'); return; }
+        n.cumplido = chk.checked;
+        if(n.cumplido && Number.isFinite(n.valor)) t.avance = n.valor;
+        try {
+          if(window.APP && typeof window.APP.saveTareas === 'function') await window.APP.saveTareas(tasks);
+          await loadAll();
+          updateDetailProgress(t);
+        } catch(e){ console.error('Guardar nivel', e); alert('Error guardando nivel'); }
+      });
+      const label = document.createElement('span'); label.innerHTML = `<strong>Nivel ${n.nivel}</strong> — ${formatPct(n.valor)}`;
+      li.appendChild(chk); li.appendChild(label); nivelesUL.appendChild(li);
+    });
+
+    updateDetailProgress(t);
+    document.getElementById('avanceEditWrap').style.display = admin ? 'block' : 'none';
+    document.getElementById('avanceEdit').value = t.avance || 0;
+    document.getElementById('detailDrive').href = t.carpetaDrive || '#';
+    document.getElementById('detailDrive').innerText = t.carpetaDrive ? 'Abrir carpeta' : '—';
+
+    renderComments(t);
+
+    const img = document.getElementById('detailImagen');
+    img.src = t.imagenKpi ? t.imagenKpi : 'https://via.placeholder.com/800x400.png?text=Sin+imagen';
+    img.alt = 'Imagen KPI';
+
+    document.getElementById('editSaveBtn').style.display = admin ? 'inline-block' : 'none';
+    document.getElementById('detailModal').classList.remove('hidden');
+
+    document.getElementById('editSaveBtn').onclick = async function(){
+      if(!admin){ alert('Solo admin puede guardar cambios'); return; }
+      const newAv = parseInt(document.getElementById('avanceEdit').value) || 0;
+      t.avance = Math.min(100, Math.max(0, newAv));
+      try {
+        if(window.APP && typeof window.APP.saveTareas === 'function') await window.APP.saveTareas(tasks);
+        await loadAll();
+        updateDetailProgress(t);
+        alert('Cambios guardados ✅');
+      } catch(e){
+        console.error('Guardar avance', e);
+        alert('Error guardando avance');
+      }
+    };
   }
-});
 
-/* -----------------------------
-   Buttons mapping
-   ----------------------------- */
-document.getElementById('newTaskBtn').addEventListener('click', openCreateModal);
+  function closeDetailModal(){ currentIndex = null; document.getElementById('detailModal').classList.add('hidden'); }
+  function updateDetailProgress(t){ const bar = document.getElementById('detailProgressBar'); const display = document.getElementById('avanceDisplay'); const value = t.avance || 0; bar.style.width = value + '%'; display.innerText = value + '%'; }
 
-/* -----------------------------
-   Init: ensure files then load
-   ----------------------------- */
-async function boot(){
-  try {
-    await ensureRepoFiles();
-    await loadAllData();
-    console.log('Datos cargados correctamente');
-  } catch(e){
-    console.error('Boot error', e);
-    alert('Error inicializando la app: ' + e.message);
+  /* ---------- Comments ---------- */
+  function renderComments(t){
+    const ul = document.getElementById('detailComentarios'); ul.innerHTML = '';
+    (t.comentarios||[]).slice().reverse().forEach(c=>{
+      const li = document.createElement('li'); li.className='mb-2 p-2 bg-zinc-800 rounded';
+      const ts = new Date(c.ts || Date.now()).toLocaleString();
+      li.innerHTML = `<div class="small-muted text-xs">${escapeHtml(ts)}</div><div class="mt-1">${escapeHtml(c.text)}</div>`;
+      ul.appendChild(li);
+    });
   }
-}
-boot();
 
+  async function addComment(){
+    const txt = document.getElementById('comentarioText').value.trim();
+    if(!txt) return;
+    if(currentIndex === null) return;
+    const t = tasks[currentIndex];
+    t.comentarios = t.comentarios || [];
+    t.comentarios.push({ text: txt, ts: Date.now() });
+    try {
+      if(window.APP && typeof window.APP.saveTareas === 'function') await window.APP.saveTareas(tasks);
+      document.getElementById('comentarioText').value = '';
+      await loadAll();
+      // re-open detail to show updated
+      openDetail(tasks.findIndex(x => x.id === t.id));
+    } catch(e){
+      console.error('Error guardando comentario', e);
+      alert('Error guardando comentario');
+    }
+  }
+
+  /* ---------- Add Area / Responsable ---------- */
+  let addMode = '';
+  function openAddModal(mode){
+    addMode = mode;
+    document.getElementById('addTitle').innerText = mode === 'area' ? '➕ Nueva Área' : '➕ Nuevo Responsable';
+    document.getElementById('addInput').value = '';
+    document.getElementById('addColor').value = '';
+    document.getElementById('addModal').classList.remove('hidden');
+  }
+  function closeAddModal(){ document.getElementById('addModal').classList.add('hidden'); }
+
+  function isHexColor(s){ return /^#([0-9A-F]{3}){1,2}$/i.test(s); }
+  async function saveAdd(){
+    const value = (document.getElementById('addInput').value || '').trim();
+    const pick = (document.getElementById('addColor').value || '').trim();
+    if(!value) return alert('Ingrese nombre válido');
+    if(addMode === 'area'){
+      const color = isHexColor(pick) ? pick : (function(){ const p = ['#06b6d4','#7c3aed','#ef4444','#f97316','#14b8a6','#0ea5e9','#a3e635','#f43f5e']; return p[Math.floor(Math.random()*p.length)]; })();
+      if(!areas.find(x=>x.nombre===value)) areas.push({ nombre: value, color });
+      try {
+        if(window.APP && typeof window.APP.saveAreas === 'function') await window.APP.saveAreas(areas);
+        await loadAll();
+        closeAddModal(); alert('Área guardada ✅');
+      } catch(e){ console.error('saveAreas', e); alert('Error guardando área'); }
+    } else {
+      if(!respons.includes(value)) respons.push(value);
+      try {
+        if(window.APP && typeof window.APP.saveRespons === 'function') await window.APP.saveRespons(respons);
+        await loadAll();
+        closeAddModal(); alert('Responsable guardado ✅');
+      } catch(e){ console.error('saveRespons', e); alert('Error guardando responsable'); }
+    }
+  }
+
+  /* ---------- Admin login ---------- */
+  document.getElementById('loginBtn').addEventListener('click', () => {
+    if(admin && document.getElementById('loginBtn').innerText === 'Cerrar sesión'){
+      if(confirm('¿Cerrar sesión de admin?')){
+        admin = false;
+        document.getElementById('adminBadge').classList.add('hidden');
+        document.getElementById('newTaskBtn').classList.add('hidden');
+        document.getElementById('statusAdmin').innerText = 'Usuario';
+        document.getElementById('loginBtn').innerText = '🔑 Ingresar Admin';
+        renderTable();
+      }
+      return;
+    }
+
+    const code = prompt('Ingrese código de administrador:');
+    if(code === 'william.oliva'){
+      admin = true;
+      document.getElementById('adminBadge').classList.remove('hidden');
+      document.getElementById('newTaskBtn').classList.remove('hidden');
+      document.getElementById('statusAdmin').innerText = 'ADMIN';
+      document.getElementById('loginBtn').innerText = 'Cerrar sesión';
+      alert('Acceso concedido ✅');
+      renderTable();
+    } else if(code === null){
+      // cancel
+    } else {
+      alert('Código incorrecto ❌');
+    }
+  });
+
+  // map newTaskBtn
+  document.getElementById('newTaskBtn').addEventListener('click', openCreateModal);
+
+  // Expose some functions to global so HTML onclick can call them (openDetail used inline)
+  window.openDetail = openDetail;
+  window.openAddModal = openAddModal;
+  window.openCreateModal = openCreateModal;
+  window.closeCreateModal = closeCreateModal;
+  window.closeAddModal = closeAddModal;
+  window.closeDetailModal = closeDetailModal;
+  window.saveAdd = saveAdd;
+  window.addComment = addComment;
+
+  // Boot
+  (async function boot(){
+    try {
+      await loadAll();
+      console.log('UI cargada y lista');
+    } catch(e){
+      console.error('Boot error', e);
+      alert('Error inicializando la app: ' + (e && e.message ? e.message : e));
+    }
+  })();
+
+})();
 </script>
 </body>
 </html>
