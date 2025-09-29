@@ -16,7 +16,7 @@
       {
         "nivel": 1,
         "valor": 33,
-        "cumplido": false
+        "cumplido": true
       },
       {
         "nivel": 2,
@@ -24,7 +24,7 @@
         "cumplido": false
       }
     ],
-    "avance": 0,
+    "avance": 33,
     "carpetaDrive": "https://drive.google.com/drive/folders/1OFkdidtcfJ2IwNCEpPL5ieaVat58i5pG?usp=drive_link",
     "imagenKpi": "https://i.postimg.cc/1tCfzP6d/1-1-1-1.jpg",
     "comentarios": [
