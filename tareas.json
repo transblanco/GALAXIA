@@ -1,1 +1,18 @@
-{"tareas":[]}
+[
+  {
+    "id": 1690000000000,
+    "item": "1.1.1.1",
+    "titulo": "Análisis de zonas y PDVs potenciales",
+    "areas": ["Comercial"],
+    "responsable": "Estefany Hernandez Redolfo",
+    "niveles": [
+      { "nivel": 0, "valor": 0, "cumplido": true },
+      { "nivel": 1, "valor": 33, "cumplido": false },
+      { "nivel": 2, "valor": 100, "cumplido": false }
+    ],
+    "avance": 0,
+    "carpetaDrive": "https://drive.google.com/drive/folders/1OFkdidtcfJ2IwNCEpPL5ieaVat58i5pG?usp=drive_link",
+    "imagenKpi": "https://i.postimg.cc/1tCfzP6d/1-1-1-1.jpg",
+    "comentarios": []
+  }
+]
