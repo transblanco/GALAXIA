@@ -1,676 +1,348 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Galaxia KPI — Gestor</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FFVV Transblanco J & M S.R.L — Cierre KPI</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <style>
-        :root {
-            --bg: #0f1724;
-            --card: #0b1220;
-            --muted: #9ca3af;
-            --accent: #3b82f6;
-            --accent-green: #10b981;
-        }
-        body { background: var(--bg); color: #e6eef8; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
-        .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); }
-        .tag { font-weight:600; font-size:.82rem; padding:.25rem .55rem; border-radius:9999px; color:#fff; display:inline-block; margin-right:6px; margin-bottom:4px; }
-        .small-muted { color:var(--muted); font-size:.86rem; }
-        .row-hover:hover { background: rgba(255,255,255,0.02); cursor:pointer; }
-        .scroll-y { max-height:220px; overflow-y:auto; }
-        .level-badge { display:inline-flex; align-items:center; gap:6px; padding:.25rem .5rem; border-radius:10px; font-size:.82rem; margin-right:6px; background: rgba(255,255,255,0.02); }
-        .btn { transition: all .12s ease; }
-        .btn:hover { transform: translateY(-1px); }
-        /* Modal overlay with 95% opacity */
-        .modal-overlay { background: rgba(0,0,0,0.95); position: absolute; inset: 0; }
-        /* Make modal content slightly less transparent (solid) */
-        .modal-card { background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); }
-        @media (max-width:820px){ .md\:grid-cols-2{ grid-template-columns: 1fr; } }
-    </style>
+  <style>
+    /* Paleta premium */
+    :root{
+      --bg:#0b1020;         /* fondo oscuro */
+      --card:#0f1724;       /* tarjetas */
+      --muted:#9ca3af;
+      --accent:#7c3aed;     /* morado principal */
+      --accent-2:#06b6d4;   /* cian */
+      --comisional:#10b981; /* verde para comisional */
+      --incentivos:#f97316; /* naranja para incentivos */
+    }
+
+    html,body { background: linear-gradient(180deg,#070712 0%, var(--bg) 100%); color:#e6eef8; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+
+    .glass {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+      border: 1px solid rgba(255,255,255,0.04);
+      backdrop-filter: blur(6px);
+    }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding: 2rem 0;
+    }
+    .timeline::before{
+      content:'';
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      width:4px;
+      height:100%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border-radius: 4px;
+    }
+
+    /* central icon */
+    .node {
+      width:48px; height:48px; border-radius:999px;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+      transition: transform .28s ease, box-shadow .28s ease;
+      transform-origin:center center;
+    }
+
+    /* left/right card alignment */
+    .kpi-card {
+      width: calc(50% - 3.5rem);
+      padding: .75rem 1rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(2,6,23,0.6);
+      transition: transform .35s cubic-bezier(.2,.9,.25,1), opacity .35s ease, filter .35s ease;
+      transform-origin: left center;
+    }
+
+    /* when node in view */
+    .in-view { transform: scale(1.06); box-shadow: 0 12px 30px rgba(0,0,0,0.7); }
+
+    /* small / out of view */
+    .out-view { transform: scale(.88); opacity:.6; filter: blur(.1px); }
+
+    /* alternate sides */
+    .left-wrap { display:flex; justify-content:flex-end; gap:1rem; align-items:center; }
+    .right-wrap { display:flex; justify-content:flex-start; gap:1rem; align-items:center; }
+
+    /* responsive tweaks */
+    @media (max-width:640px){
+      .kpi-card { width: calc(100% - 5rem); font-size: .95rem; }
+      .timeline::before { left: 48px; transform:none; } /* move vertical line right for mobile */
+      .node { position: absolute; left: 24px; transform:none; }
+      .left-wrap, .right-wrap { flex-direction: row; justify-content:flex-start; }
+    }
+
+    /* nice transitions for entry */
+    .reveal { transform: translateY(20px) scale(.96); opacity:0; transition: all .6s cubic-bezier(.2,.9,.25,1); }
+    .reveal.show { transform: translateY(0) scale(1); opacity:1; }
+
+    /* header accent */
+    .logo-accent { background: linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700; }
+
+  </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-    <script src="/GALAXIA/frontend-config.js"></script>
-    <script src="/GALAXIA/app.js"></script>
+  <main class="max-w-xl mx-auto p-4">
 
-    <div class="max-w-6xl mx-auto p-6">
+    <!-- HEADER -->
+    <header class="mb-4">
+      <h1 class="text-xl font-semibold logo-accent">FFVV Transblanco J &amp; M S.R.L</h1>
+      <p class="text-xs text-slate-400 mt-1">Cierre de KPI - Vendedores</p>
+    </header>
 
-        <header class="flex items-center justify-between mb-6">
-            <div>
-                <h1 class="text-2xl font-bold text-white">📊 Galaxia KPI — Gestor</h1>
-                <p class="small-muted mt-1">Seguimiento auditoría — Backus (Galaxia)</p>
-            </div>
+    <!-- FILTERS -->
+    <section class="mb-4 grid grid-cols-3 gap-3">
+      <select id="filterYear" class="glass p-2 rounded">
+        <!-- JS fills -->
+      </select>
+      <select id="filterMonth" class="glass p-2 rounded">
+        <!-- JS fills -->
+      </select>
+      <select id="filterZone" class="glass p-2 rounded">
+        <!-- JS fills -->
+      </select>
+    </section>
 
-            <div class="flex items-center gap-3">
-                <div id="adminBadge" class="hidden px-3 py-1 rounded-full bg-green-600 text-black font-semibold">ADMIN</div>
-                <button id="loginBtn" class="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 btn">🔑 Ingresar Admin</button>
-                <button id="newTaskBtn" class="px-3 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 btn hidden">➕ Nueva tarea</button>
-            </div>
-        </header>
+    <!-- PROFILE -->
+    <section id="profile" class="glass p-3 rounded mb-4 flex items-center gap-3">
+      <img id="sellerPhoto" src="https://via.placeholder.com/96" alt="vendedor" class="w-20 h-20 rounded-full object-cover ring-2 ring-white/10 shadow-sm" />
+      <div class="flex-1">
+        <div id="sellerName" class="text-lg font-semibold">Nombre Vendedor</div>
+        <div id="sellerBday" class="text-xs text-slate-400 mt-1">Cumpleaños: --/--/----</div>
+        <div class="text-xs text-slate-400 mt-2">Zona: <span id="sellerZone">PE05028</span></div>
+      </div>
+      <div class="text-right">
+        <div class="text-xs text-slate-400">Resumen</div>
+        <div class="font-semibold text-white">Avance global <span id="sellerOverall">82%</span></div>
+      </div>
+    </section>
 
-        <div class="flex items-center justify-between gap-4 mb-6">
-            <div class="flex items-center gap-3">
-                <div class="card px-4 py-2 rounded-md small-muted">Tareas guardadas: <span id="countTasks" class="font-semibold text-white ml-2">0</span></div>
-                <div class="card px-4 py-2 rounded-md small-muted">Áreas: <span id="countAreas" class="font-semibold text-white ml-2">0</span></div>
-            </div>
-            <div class="small-muted">Conexión: <span id="statusAdmin" class="font-semibold text-white ml-2">Usuario</span></div>
+    <!-- TIMELINE -->
+    <section id="timelineWrap" class="timeline relative">
+      <!-- JS will inject timeline items here -->
+    </section>
+
+    <!-- footer hint -->
+    <footer class="mt-6 text-center text-xs text-slate-500">Desliza hacia abajo para ver KPIs — diseñando para móviles.</footer>
+  </main>
+
+  <script>
+    /***** SAMPLE DATA (replace with your real data) *****/
+    const SAMPLE_ZONES = ['PE05028','PE05029','PE05030'];
+    const SAMPLE_YEARS = [2023,2024,2025];
+    const SAMPLE_MONTHS = [
+      {val:1,name:'Enero'},{val:2,name:'Febrero'},{val:3,name:'Marzo'},
+      {val:4,name:'Abril'},{val:5,name:'Mayo'},{val:6,name:'Junio'},
+      {val:7,name:'Julio'},{val:8,name:'Agosto'},{val:9,name:'Sept'},{val:10,name:'Oct'},{val:11,name:'Nov'},{val:12,name:'Dic'}
+    ];
+
+    const SAMPLE_DATA = {
+      // keyed by zone -> sellers list
+      'PE05028': [
+        {
+          id:1, photo:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=60&auto=format&fit=crop',
+          name:'Carlos Ruiz', birthday:'1989-06-15',
+          overall:82,
+          kpis: [
+            { id:'k1', side:'left', type:'comisional', title:'Cobertura PDV', value:'78%', desc:'Clientes visitados vs plan', icon:'⚑' },
+            { id:'k2', side:'right', type:'incentivos', title:'Venta X', value:'120%', desc:'Meta mensual', icon:'💰' },
+            { id:'k3', side:'left', type:'comisional', title:'Fotos subidas', value:'10/12', desc:'Evidencias', icon:'📸' },
+            { id:'k4', side:'right', type:'incentivos', title:'Upsell', value:'3', desc:'Nuevos SKUs', icon:'✨' }
+          ]
+        },
+        {
+          id:2, photo:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=802&q=60&auto=format&fit=crop',
+          name:'María Gómez', birthday:'1992-09-03',
+          overall:91,
+          kpis: [
+            { id:'k1', side:'left', type:'comisional', title:'Cobertura PDV', value:'88%', desc:'Clientes visitados vs plan', icon:'⚑' },
+            { id:'k2', side:'right', type:'incentivos', title:'Venta X', value:'110%', desc:'Meta mensual', icon:'💰' },
+            { id:'k3', side:'left', type:'incentivos', title:'Activación', value:'5', desc:'Promos realizadas', icon:'🎯' },
+          ]
+        }
+      ],
+      'PE05029': [
+        // other sellers
+      ]
+    };
+
+    /***** UI BOILERPLATE *****/
+    const el = sel => document.querySelector(sel);
+    const byId = id => document.getElementById(id);
+
+    // fill filters
+    function populateFilters(){
+      const fy = byId('filterYear');
+      SAMPLE_YEARS.forEach(y => {
+        const o = document.createElement('option'); o.value=y; o.textContent=y; fy.appendChild(o);
+      });
+      const fm = byId('filterMonth');
+      SAMPLE_MONTHS.forEach(m => { const o = document.createElement('option'); o.value=m.val; o.textContent=m.name; fm.appendChild(o); });
+      const fz = byId('filterZone');
+      SAMPLE_ZONES.forEach(z => { const o = document.createElement('option'); o.value=z; o.textContent=z; fz.appendChild(o); });
+      // default selects
+      fy.value = new Date().getFullYear();
+      fm.value = new Date().getMonth()+1;
+      fz.value = SAMPLE_ZONES[0];
+    }
+
+    // render profile & timeline for the first seller in zone
+    function renderForZone(zone){
+      const sellers = SAMPLE_DATA[zone] || [];
+      if(!sellers.length){
+        byId('profile').classList.add('hidden');
+        byId('timelineWrap').innerHTML = `<div class="text-center text-sm text-slate-400 py-8">No hay datos para ${zone}</div>`;
+        return;
+      }
+      // pick first seller for now (could be selector)
+      const seller = sellers[0];
+      byId('sellerPhoto').src = seller.photo;
+      byId('sellerName').textContent = seller.name;
+      byId('sellerBday').textContent = `Cumpleaños: ${new Date(seller.birthday).toLocaleDateString()}`;
+      byId('sellerZone').textContent = zone;
+      byId('sellerOverall').textContent = seller.overall + '%';
+
+      // build timeline items
+      const wrap = byId('timelineWrap');
+      wrap.innerHTML = ''; // reset
+      // create spaced items
+      seller.kpis.forEach((k, idx) => {
+        const item = createTimelineItem(k, idx);
+        wrap.appendChild(item);
+      });
+
+      // after DOM built, wire observer
+      initObservers();
+    }
+
+    // helper: create timeline DOM node
+    function createTimelineItem(kpi, idx){
+      const container = document.createElement('div');
+      container.className = 'mb-8 relative reveal';
+      container.style.zIndex = 10;
+
+      // wrapper to hold left/right card + node
+      const inner = document.createElement('div');
+      inner.className = kpi.side === 'left' ? 'left-wrap items-center' : 'right-wrap items-center';
+
+      // create card
+      const card = document.createElement('div');
+      card.className = 'kpi-card glass';
+      card.innerHTML = `
+        <div class="flex items-start gap-3">
+          <div>
+            <div class="text-xs text-slate-400">${kpi.title}</div>
+            <div class="text-lg font-semibold mt-1">${kpi.value}</div>
+            <div class="text-xs text-slate-400 mt-2">${kpi.desc}</div>
+          </div>
         </div>
+      `;
 
-        <section class="card rounded-lg p-4">
-            <div id="taskTable" class="w-full overflow-x-auto"></div>
-        </section>
-    </div>
+      // style card by type
+      if(kpi.type === 'comisional'){
+        card.style.borderLeft = '4px solid '+getComputedStyle(document.documentElement).getPropertyValue('--comisional');
+      } else {
+        card.style.borderLeft = '4px solid '+getComputedStyle(document.documentElement).getPropertyValue('--incentivos');
+      }
 
-    <div id="createModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
-        <div class="modal-overlay"></div>
-        <div class="relative max-w-3xl w-full mx-4 modal-card rounded-lg p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="createTitle" class="text-xl font-bold">➕ Nueva tarea</h2>
-                <button class="text-gray-300" onclick="closeCreateModal()">✕</button>
-            </div>
+      // node (icon circle)
+      const node = document.createElement('div');
+      node.className = 'node glass';
+      node.innerHTML = `<div style="font-size:18px">${kpi.icon}</div>`;
+      // color node background by type
+      if(kpi.type === 'comisional'){
+        node.style.background = 'linear-gradient(90deg,var(--comisional),rgba(16,185,129,.9))';
+      } else {
+        node.style.background = 'linear-gradient(90deg,var(--incentivos),rgba(249,115,22,.9))';
+      }
 
-            <form id="createForm" class="grid grid-cols-1 gap-3">
-                <div class="grid grid-cols-3 gap-3">
-                    <input id="inputItem" class="col-span-1 p-2 rounded bg-transparent border border-zinc-700" placeholder="Item (ej: 1.1.1)" required>
-                    <input id="inputTitulo" class="col-span-2 p-2 rounded bg-transparent border border-zinc-700" placeholder="Título de la tarea" required>
-                </div>
+      // arrangement: on mobile, node is left (absolute) and card flows below; elsewhere alternate left/right
+      if(window.innerWidth <= 640){
+        // mobile: node absolute on left; card full width
+        node.style.position = 'absolute'; node.style.left = '8px'; node.style.top = '0';
+        card.style.marginLeft = '3.5rem';
+        inner.appendChild(card);
+        inner.appendChild(node);
+      } else {
+        if(kpi.side === 'left'){
+          inner.appendChild(card);
+          inner.appendChild(node);
+        } else {
+          inner.appendChild(node);
+          inner.appendChild(card);
+        }
+      }
 
-                <div class="grid grid-cols-3 gap-3">
-                    <div class="col-span-1">
-                        <label class="small-muted mb-1 block">Áreas (Ctrl/Shift para mult)</label>
-                        <select id="selectAreas" multiple class="w-full p-2 rounded bg-transparent border border-zinc-700"></select>
-                    </div>
-                    <div class="col-span-1 flex items-end gap-2">
-                        <button type="button" class="px-3 py-2 bg-indigo-600 rounded btn" onclick="openAddModal('area')">➕ Nueva Área</button>
-                    </div>
+      container.appendChild(inner);
+      return container;
+    }
 
-                    <div class="col-span-1">
-                        <label class="small-muted mb-1 block">Responsable</label>
-                        <select id="selectResp" class="w-full p-2 rounded bg-transparent border border-zinc-700"></select>
-                    </div>
-                    <div class="col-span-1 flex items-end gap-2">
-                        <button type="button" class="px-3 py-2 bg-indigo-600 rounded btn" onclick="openAddModal('responsable')">➕ Nuevo</button>
-                    </div>
-                </div>
+    // observe reveal + node in-view scaling
+    function initObservers(){
+      const reveals = document.querySelectorAll('.reveal');
+      const options = { root:null, rootMargin: '0px', threshold: .2 };
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(ent => {
+          if(ent.isIntersecting){
+            ent.target.classList.add('show');
+            // scale up nodes inside
+            const node = ent.target.querySelector('.node');
+            if(node) node.classList.add('in-view');
+            ent.target.classList.remove('out-view');
+          } else {
+            ent.target.classList.remove('show');
+            const node = ent.target.querySelector('.node');
+            if(node) node.classList.remove('in-view');
+            ent.target.classList.add('out-view');
+          }
+        });
+      }, options);
+      reveals.forEach(r => observer.observe(r));
+    }
 
-                <div class="grid grid-cols-3 gap-3">
-                    <div>
-                        <label class="small-muted block mb-1">Cantidad de niveles</label>
-                        <input id="inputCantidadNiv" type="number" min="1" max="6" value="3" class="p-2 rounded bg-transparent border border-zinc-700" onchange="renderNivelInputs()">
-                    </div>
-                    <div>
-                        <label class="small-muted block mb-1">% Avance inicial (solo admin)</label>
-                        <input id="inputAvance" type="number" min="0" max="100" value="0" class="p-2 rounded bg-transparent border border-zinc-700">
-                    </div>
-                    <div>
-                        <label class="small-muted block mb-1">Carpeta Drive</label>
-                        <input id="inputDrive" type="url" placeholder="https://drive.google.com/..." class="p-2 rounded bg-transparent border border-zinc-700">
-                    </div>
-                </div>
+    // helper to get CSS var
+    function cssVar(name){
+      return getComputedStyle(document.documentElement).getPropertyValue(name);
+    }
+    // polyfill for color retrieval used earlier
+    // wire filters
+    function wireFilters(){
+      byId('filterZone').addEventListener('change', (e)=> {
+        renderForZone(e.target.value);
+      });
 
-                <div>
-                    <label class="small-muted block mb-1">Metas por nivel (0–100) — Empiezan en Nivel 0</label>
-                    <div id="nivelesInputs" class="grid gap-2"></div>
-                </div>
+      // optional: change year/month triggers reload if you implement data backend
+      byId('filterYear').addEventListener('change', ()=> {/* TODO */});
+      byId('filterMonth').addEventListener('change', ()=> {/* TODO */});
+    }
 
-                <div>
-                    <label class="small-muted block mb-1">Imagen KPI (URL)</label>
-                    <input id="inputImagen" type="url" placeholder="https://..." class="p-2 rounded bg-transparent border border-zinc-700">
-                </div>
+    // init
+    (function init(){
+      populateFilters();
+      wireFilters();
+      renderForZone(byId('filterZone').value);
+      // subtle scroll behavior
+      document.documentElement.style.scrollBehavior = 'smooth';
+    })();
 
-                <div class="flex gap-2 justify-end mt-2">
-                    <button type="button" class="px-4 py-2 rounded bg-zinc-600 hover:bg-zinc-500" onclick="closeCreateModal()">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400">Guardar tarea</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    // handle resize to re-render for responsive placement
+    let resizeTO;
+    window.addEventListener('resize', ()=> {
+      clearTimeout(resizeTO);
+      resizeTO = setTimeout(()=> renderForZone(byId('filterZone').value), 240);
+    });
 
-    <div id="addModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
-        <div class="modal-overlay"></div>
-        <div class="relative max-w-md w-full mx-4 modal-card rounded-lg p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="addTitle" class="text-lg font-bold">➕ Nuevo</h3>
-                <button class="text-gray-300" onclick="closeAddModal()">✕</button>
-            </div>
-            <div class="grid gap-3">
-                <input id="addInput" class="p-2 rounded bg-transparent border border-zinc-700" placeholder="Nombre...">
-                <input id="addColor" class="p-2 rounded bg-transparent border border-zinc-700" placeholder="#HEX (opcional)">
-                <div class="flex justify-end gap-2">
-                    <button class="px-4 py-2 rounded bg-zinc-600" onclick="closeAddModal()">Cancelar</button>
-                    <button class="px-4 py-2 rounded bg-indigo-600" onclick="saveAdd()">Guardar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="detailModal" class="fixed inset-0 hidden z-50 flex items-center justify-center">
-        <div class="modal-overlay"></div>
-        <div class="relative max-w-3xl w-full mx-4 modal-card rounded-lg p-6">
-            <div class="flex justify-between items-start gap-4">
-                <div>
-                    <h2 id="detailTitle" class="text-2xl font-bold"></h2>
-                    <p class="small-muted" id="detailItem"></p>
-                    <div id="detailAreas" class="mt-2"></div>
-                </div>
-                <div class="flex gap-2">
-                    <button id="editSaveBtn" class="hidden px-3 py-1 rounded bg-emerald-500">Guardar cambios</button>
-                    <button class="px-3 py-1 rounded bg-zinc-600" onclick="closeDetailModal()">Cerrar</button>
-                </div>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-4 mt-4">
-                <div>
-                    <p class="small-muted">Responsable</p>
-                    <p id="detailResp" class="font-semibold"></p>
-
-                    <p class="small-muted mt-3">Niveles de cumplimiento</p>
-                    <ul id="detailNiveles" class="mt-2"></ul>
-
-                    <p class="small-muted mt-3">% Avance</p>
-                    <div class="flex items-center gap-3 mt-1">
-                        <div class="w-full bg-zinc-800 h-4 rounded overflow-hidden">
-                            <div id="detailProgressBar" class="h-4 bg-emerald-500" style="width:0%"></div>
-                        </div>
-                        <div id="avanceDisplay" class="font-semibold">0%</div>
-                    </div>
-
-                    <div id="avanceEditWrap" class="mt-2 hidden">
-                        <label class="small-muted">Editar % Avance</label>
-                        <input id="avanceEdit" type="number" min="0" max="100" class="p-2 mt-1 w-32 rounded bg-transparent border border-zinc-700">
-                    </div>
-
-                    <p class="small-muted mt-4">Carpeta Drive</p>
-                    <a id="detailDrive" class="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">Abrir Carpeta</a>
-
-                    <div class="mt-4">
-                        <p class="small-muted">Comentarios</p>
-                        <ul id="detailComentarios" class="mt-2 scroll-y"></ul>
-
-                        <div class="flex gap-2 mt-2">
-                            <input id="comentarioText" placeholder="Agregar comentario..." class="p-2 rounded bg-transparent border border-zinc-700 flex-1">
-                            <button id="btnAddComment" class="px-3 py-2 rounded bg-indigo-600" onclick="addComment()">Comentar</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="small-muted">Imagen KPI</p>
-                    <div class="mt-2 card p-3 rounded">
-                        <img id="detailImagen" src="" alt="Imagen KPI" class="w-full object-contain rounded" />
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-<script>
-/* index.html UI glue: usa window.APP.* (serverless-based) que debes tener en /GALAXIA/app.js
-   - FRONTEND_CONFIG debe existir (en /GALAXIA/frontend-config.js). */
-
-(function(){
-  // Safety checks
-  if(typeof FRONTEND_CONFIG === 'undefined') {
-    alert('Falta frontend-config.js (FRONTEND_CONFIG). Añádelo en /GALAXIA/frontend-config.js');
-    throw new Error('FRONTEND_CONFIG missing');
-  }
-
-  // Local state
-  let admin = false;
-  let tasks = [];
-  let areas = [];
-  let respons = [];
-  let currentIndex = null;
-
-  // Helpers
-  function escapeHtml(s){ if(!s && s !== 0) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
-  function formatPct(v){ if(v===null||v===undefined||v==='') return '—'; return `${v}%`; }
-  function compareItems(a,b){ if(!a) return 1; if(!b) return -1; const pa=(a+'').split('.').map(x=>parseInt(x)||0); const pb=(b+'').split('.').map(x=>parseInt(x)||0); for(let i=0;i<Math.max(pa.length,pb.length);i++){ if((pa[i]||0) < (pb[i]||0)) return -1; if((pa[i]||0) > (pb[i]||0)) return 1; } return 0; }
-  function getAreaColorByName(name){ const f = areas.find(x=>x.nombre === name); return f ? f.color : '#6b7280'; }
-
-  // Wait for window.APP to exist (timeout fallback)
-  async function waitForApp(timeout = 5000){
-    if(window.APP) return;
-    return new Promise((resolve) => {
-      const start = Date.now();
-      const id = setInterval(()=> {
-        if(window.APP) { clearInterval(id); resolve(); }
-        if(Date.now() - start > timeout){ clearInterval(id); resolve(); }
-      }, 150);
-    });
-  }
-  
-  /* ⚡ OPTIMIZED SAVE FUNCTION ⚡ */
-  // Centraliza la lógica de guardado de tareas y actualiza localmente
-  async function saveTasksAndRefreshUI(newTaskArray = tasks, refreshTable = true, refreshDetail = false){
-    tasks = newTaskArray; // Actualiza la variable global con la versión más reciente
-    try {
-      if(window.APP && (typeof window.APP.saveTareas === 'function' || typeof window.APP.saveTasks === 'function')){
-        const saveFunc = window.APP.saveTareas || window.APP.saveTasks;
-        await saveFunc(tasks);
-      } else {
-        // Sin función de guardado, solo persiste localmente (no es un problema aquí, pero es buen feedback)
-        console.warn("No hay función de guardado (window.APP.saveTareas/saveTasks). Solo cambios locales.");
-      }
-      if (refreshTable) renderTable();
-      if (refreshDetail && currentIndex !== null) openDetail(currentIndex, false); // Re-renderiza el detalle SIN recargar datos
-      return true;
-    } catch(err){
-      console.error('Error guardando tarea', err);
-      alert('Error guardando tarea: ' + (err.message||err));
-      return false;
-    }
-  }
-
-
-  // Load data via window.APP
-  async function loadAll(){
-    await waitForApp();
-    let fetchedData = {};
-    
-    if(window.APP && typeof window.APP.loadAll === 'function'){
-      try { fetchedData = await window.APP.loadAll() || {}; } catch(e){ console.warn('Error window.APP.loadAll', e); fetchedData = {}; }
-    }
-
-    // Fallback or merge with raw files
-    if(Object.keys(fetchedData).length === 0){
-      const rawBase = FRONTEND_CONFIG.RAW_BASE || '';
-      try {
-        const rT = await fetch(rawBase + (FRONTEND_CONFIG.FILES.tareas || 'tareas.json'));
-        fetchedData.tareas = rT.ok ? await rT.json() : [];
-      } catch(e){ fetchedData.tareas = []; }
-      try {
-        const rA = await fetch(rawBase + (FRONTEND_CONFIG.FILES.areas || 'areas.json'));
-        fetchedData.areas = rA.ok ? await rA.json() : [];
-      } catch(e){ fetchedData.areas = []; }
-      try {
-        const rR = await fetch(rawBase + (FRONTEND_CONFIG.FILES.responsables || 'responsables.json'));
-        fetchedData.respons = rR.ok ? await rR.json() : [];
-      } catch(e){ fetchedData.respons = []; }
-    }
-
-    // normalize arrays if necessary
-    tasks = fetchedData.tareas && Array.isArray(fetchedData.tareas) ? fetchedData.tareas : (fetchedData.tareas && fetchedData.tareas.tareas) || [];
-    areas = fetchedData.areas && Array.isArray(fetchedData.areas) ? fetchedData.areas : (fetchedData.areas && fetchedData.areas.areas) || [];
-    respons = fetchedData.respons && Array.isArray(fetchedData.respons) ? fetchedData.respons : (fetchedData.respons && fetchedData.respons.responsables) || [];
-
-
-    renderAreasAndResps();
-    renderTable();
-  }
-
-  /* 🧠 CORE LOGIC: Nivel / Avance 🧠 */
-  // Calcula el avance y asegura la coherencia de niveles cumplidos
-  function calculateTaskProgress(task){
-    // 1. Encontrar el nivel más alto cumplido.
-    let highestCompletedLevelValue = 0;
-    (task.niveles || []).forEach(n => {
-      if (n.cumplido && Number.isFinite(n.valor) && n.valor > highestCompletedLevelValue) {
-        highestCompletedLevelValue = n.valor;
-      }
-    });
-
-    // 2. Si el avance manual (admin) es mayor al nivel más alto cumplido, respeta el avance manual.
-    if (task.avance > highestCompletedLevelValue) {
-      // 3. Ajustar los niveles cumplidos para que coincidan con el avance manual (si es mayor)
-      (task.niveles || []).forEach(n => {
-        // Si el avance es mayor o igual al valor del nivel, se considera cumplido
-        if (task.avance >= n.valor) {
-          n.cumplido = true;
-        }
-      });
-      // Aseguramos que el avance esté en el rango 0-100
-      task.avance = Math.min(100, Math.max(0, task.avance));
-      return task.avance; // Devuelve el avance manual
-    }
-
-    // 4. Si el avance manual es menor o igual al nivel más alto, se usa el valor del nivel cumplido.
-    task.avance = highestCompletedLevelValue;
-    return highestCompletedLevelValue;
-  }
-  
-  /* ---------- Render UI ---------- */
-  function renderAreasAndResps(){
-    const selA = document.getElementById('selectAreas'); if(selA){ selA.innerHTML = ''; areas.forEach(a=>{ const opt = document.createElement('option'); opt.value = a.nombre; opt.textContent = a.nombre; selA.appendChild(opt); }); }
-    const selR = document.getElementById('selectResp'); if(selR){ selR.innerHTML = ''; respons.forEach(r=>{ const opt = document.createElement('option'); opt.value = r; opt.textContent = r; selR.appendChild(opt); }); }
-    document.getElementById('countAreas').innerText = areas.length || 0;
-  }
-
-  function renderTable(){
-    // Recalcula el avance antes de renderizar la tabla para mantener la coherencia
-    const arr = [...tasks].map(t => { t.avance = calculateTaskProgress(t); return t; }).sort((x,y)=>compareItems(x.item,y.item));
-    
-    document.getElementById('countTasks').innerText = arr.length || 0;
-    if(arr.length === 0){
-      document.getElementById('taskTable').innerHTML = `<div class="p-8 text-center small-muted">No hay tareas. ${ admin ? 'Crea una con ➕ Nueva tarea' : 'Pide a un administrador crear una tarea.' }</div>`;
-      return;
-    }
-    let html = `<table class="w-full text-left"><thead>
-      <tr class="text-zinc-400 text-sm">
-        <th class="p-3">Item</th>
-        <th class="p-3">Título</th>
-        <th class="p-3">Áreas</th>
-        <th class="p-3">Responsable</th>
-        <th class="p-3">Niveles</th>
-        <th class="p-3">Carpeta</th>
-      </tr></thead><tbody class="space-y-2">`;
-    arr.forEach(t => {
-      const idx = tasks.findIndex(x => x.id === t.id); // Usamos ID para ser más robustos
-      const areasHtml = (t.areas||[]).map(a => `<span class="tag" style="background:${getAreaColorByName(a)}">${escapeHtml(a)}</span>`).join(' ');
-      const levelsHtml = (t.niveles||[]).map(n => {
-        const c = n.cumplido ? '✅' : '⬜';
-        return `<span class="level-badge">${c} N${n.nivel}: ${formatPct(n.valor)}</span>`;
-      }).join(' ');
-      html += `<tr class="row-hover" onclick="openDetail(${idx})">
-        <td class="p-3 align-top"><div class="font-semibold">${escapeHtml(t.item)}</div></td>
-        <td class="p-3 align-top"><div class="font-medium">${escapeHtml(t.titulo)}</div></td>
-        <td class="p-3 align-top">${areasHtml}</td>
-        <td class="p-3 align-top">${escapeHtml(t.responsable)}</td>
-        <td class="p-3 align-top">${levelsHtml}</td>
-        <td class="p-3 align-top"><a class="text-indigo-400 hover:underline" href="${escapeHtml(t.carpetaDrive||'#')}" target="_blank">📂 Abrir</a></td>
-      </tr>`;
-    });
-    html += `</tbody></table>`;
-    document.getElementById('taskTable').innerHTML = html;
-  }
-
-  /* ---------- Create modal logic (niveles empiezan en 0) ---------- */
-  function openCreateModal(){
-    if(!admin){ alert('Solo admin puede crear tareas. Inicia sesión con el código.'); return; }
-    document.getElementById('createTitle').innerText = '➕ Nueva tarea';
-    document.getElementById('createForm').reset();
-    renderAreasAndResps();
-    renderNivelInputs();
-    document.getElementById('createModal').classList.remove('hidden');
-  }
-  function closeCreateModal(){ document.getElementById('createModal').classList.add('hidden'); }
-
-  function renderNivelInputs(){
-    const cnt = document.getElementById('nivelesInputs'); cnt.innerHTML = '';
-    const how = parseInt(document.getElementById('inputCantidadNiv').value) || 1;
-    // now levels go from 0 to how-1
-    for(let i=0;i<how;i++){
-      const wrap = document.createElement('div'); wrap.className='flex gap-2 items-center';
-      const label = document.createElement('label'); label.textContent = `Nivel ${i}:`; label.className='small-muted w-24';
-      const input = document.createElement('input'); input.type='number'; input.min=0; input.max=100; input.value= i===0 ? 0 : 25 + i * 15; // default values for clarity
-      input.id=`meta_nivel_${i}`;
-      input.className='p-2 rounded bg-transparent border border-zinc-700 w-32';
-      const pct = document.createElement('span'); pct.className='small-muted'; pct.innerText = '%';
-      input.addEventListener('input', ()=> {
-        let v = parseInt(input.value) || 0; if(v<0) v=0; if(v>100) v=100; input.value = v;
-      });
-      wrap.appendChild(label); wrap.appendChild(input); wrap.appendChild(pct);
-      cnt.appendChild(wrap);
-    }
-  }
-
-  // create form submit
-  document.getElementById('createForm').addEventListener('submit', async function(e){
-    e.preventDefault();
-    if(!admin){ alert('Solo admin puede crear tareas.'); return; }
-
-    const item = document.getElementById('inputItem').value.trim();
-    const titulo = document.getElementById('inputTitulo').value.trim();
-    const seleccion = Array.from(document.getElementById('selectAreas').selectedOptions).map(o=>o.value);
-    const responsable = document.getElementById('selectResp').value;
-    const cantidad = parseInt(document.getElementById('inputCantidadNiv').value) || 1;
-    const metas = [];
-    // levels start at 0
-    for(let i=0;i<cantidad;i++){
-      const el = document.getElementById(`meta_nivel_${i}`);
-      const val = parseInt((el || {value:0}).value) || 0;
-      metas.push({ nivel: i, valor: val, cumplido: false });
-    }
-    let avance = parseInt(document.getElementById('inputAvance').value) || 0;
-    const carpetaDrive = document.getElementById('inputDrive').value.trim();
-    const imagenKpi = document.getElementById('inputImagen').value.trim();
-
-    if(!item || !titulo){ alert('Item y Título obligatorios'); return; }
-
-    const newTask = {
-      id: Date.now(), // Usar un ID robusto
-      item,
-      titulo,
-      areas: seleccion.length ? seleccion : ['Sin Área'],
-      responsable: responsable || 'Sin responsable',
-      niveles: metas,
-      avance,
-      carpetaDrive,
-      imagenKpi,
-      comentarios: []
-    };
-    
-    // Calcula el avance inicial de la nueva tarea (ajusta niveles si es necesario)
-    calculateTaskProgress(newTask);
-
-    tasks.push(newTask);
-    
-    if (await saveTasksAndRefreshUI(tasks, true)) {
-      closeCreateModal();
-      alert('Tarea guardada ✅');
-    }
-  });
-
-  /* ---------- Detail modal ---------- */
-  // El parámetro skipRefreshData permite re-renderizar el modal sin hacer loadAll, evitando lentitud
-  function openDetail(idx, skipRefreshData = true){
-    currentIndex = idx;
-    const t = tasks[idx];
-    if(!t) return;
-    
-    // ⚡ Optimización: Recalcula y actualiza el avance localmente antes de mostrar el detalle
-    t.avance = calculateTaskProgress(t);
-    
-    document.getElementById('detailTitle').innerText = t.titulo;
-    document.getElementById('detailItem').innerText = `Item: ${t.item}`;
-    const areasWrap = document.getElementById('detailAreas'); areasWrap.innerHTML = '';
-    (t.areas||[]).forEach(a=>{
-      const s = document.createElement('span'); s.className='tag'; s.style.background = getAreaColorByName(a); s.innerText = a;
-      areasWrap.appendChild(s);
-    });
-
-    document.getElementById('detailResp').innerText = t.responsable || '—';
-    const nivelesUL = document.getElementById('detailNiveles'); nivelesUL.innerHTML = '';
-    (t.niveles||[]).forEach((n,i)=>{
-      const li = document.createElement('li'); li.className='flex items-center gap-3 py-1';
-      const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = !!n.cumplido; chk.disabled = !admin;
-      chk.id = `detail_level_${t.id}_${i}`; // ID único para el checkbox
-      
-      // ⚡ Fix: Guardado de Nivel y lógica de Avance
-      chk.addEventListener('change', async ()=>{
-        if(!admin){ chk.checked = !chk.checked; alert('Solo admin puede cambiar niveles'); return; }
-        
-        n.cumplido = chk.checked; // ✅ El estado se guarda en el objeto t
-
-        // Recalcula el avance basado en el nuevo estado de niveles
-        t.avance = calculateTaskProgress(t);
-
-        if(await saveTasksAndRefreshUI(tasks, true, true)) { // Guarda y re-renderiza tabla y modal
-          // updateDetailProgress(t) es llamado por openDetail(..., true)
-        } else {
-          // Si falla, revierte el estado
-          n.cumplido = !chk.checked;
-          chk.checked = !chk.checked;
-        }
-      });
-      
-      const label = document.createElement('span'); label.innerHTML = `<strong>Nivel ${n.nivel}</strong> — ${formatPct(n.valor)}`;
-      li.appendChild(chk); li.appendChild(label); nivelesUL.appendChild(li);
-    });
-
-    updateDetailProgress(t);
-    document.getElementById('avanceEditWrap').style.display = admin ? 'block' : 'none';
-    document.getElementById('avanceEdit').value = t.avance || 0;
-    document.getElementById('detailDrive').href = t.carpetaDrive || '#';
-    document.getElementById('detailDrive').innerText = t.carpetaDrive ? 'Abrir carpeta' : '—';
-
-    renderComments(t);
-
-    const img = document.getElementById('detailImagen');
-    img.src = t.imagenKpi ? t.imagenKpi : 'https://via.placeholder.com/800x400.png?text=Sin+imagen';
-    img.alt = 'Imagen KPI';
-
-    document.getElementById('editSaveBtn').style.display = admin ? 'inline-block' : 'none';
-    document.getElementById('detailModal').classList.remove('hidden');
-
-    document.getElementById('editSaveBtn').onclick = async function(){
-      if(!admin){ alert('Solo admin puede guardar cambios'); return; }
-      
-      const newAv = parseInt(document.getElementById('avanceEdit').value) || 0;
-      t.avance = Math.min(100, Math.max(0, newAv));
-      
-      // Al editar el avance, llamamos a la lógica de coherencia
-      calculateTaskProgress(t);
-      
-      if(await saveTasksAndRefreshUI(tasks, true, true)) {
-        alert('Cambios guardados ✅');
-      }
-    };
-  }
-
-  function closeDetailModal(){ currentIndex = null; document.getElementById('detailModal').classList.add('hidden'); }
-  function updateDetailProgress(t){ 
-    const bar = document.getElementById('detailProgressBar'); 
-    const display = document.getElementById('avanceDisplay'); 
-    const value = t.avance || 0; 
-    bar.style.width = value + '%'; 
-    display.innerText = value + '%'; 
-    
-    // ⚡ Actualiza los checkboxes en el modal para reflejar el avance calculado
-    // Nota: Usamos querySelectorAll para encontrar los checkboxes correctos
-    const chks = document.querySelectorAll('#detailNiveles input[type="checkbox"]');
-    (t.niveles||[]).forEach((n,i) => {
-      if(chks[i]) chks[i].checked = !!n.cumplido;
-    });
-  }
-
-  /* ---------- Comments ---------- */
-  function renderComments(t){
-    const ul = document.getElementById('detailComentarios'); ul.innerHTML = '';
-    (t.comentarios||[]).slice().reverse().forEach(c=>{
-      const li = document.createElement('li'); li.className='mb-2 p-2 bg-zinc-800 rounded';
-      const ts = new Date(c.ts || Date.now()).toLocaleString();
-      li.innerHTML = `<div class="small-muted text-xs">${escapeHtml(ts)}</div><div class="mt-1">${escapeHtml(c.text)}</div>`;
-      ul.appendChild(li);
-    });
-  }
-
-  async function addComment(){
-    const txt = document.getElementById('comentarioText').value.trim();
-    if(!txt) return;
-    if(currentIndex === null) return;
-    const t = tasks[currentIndex];
-    t.comentarios = t.comentarios || [];
-    t.comentarios.push({ text: txt, ts: Date.now() });
-    
-    if (await saveTasksAndRefreshUI(tasks, false, false)) { // Solo guarda, NO recarga tabla ni modal completo
-      document.getElementById('comentarioText').value = '';
-      renderComments(t); // Solo re-renderiza la sección de comentarios
-    }
-  }
-
-  /* ---------- Add Area / Responsable ---------- */
-  let addMode = '';
-  function openAddModal(mode){
-    if(!admin){ alert('Solo admin puede crear áreas/responsables.'); return; }
-    addMode = mode;
-    document.getElementById('addTitle').innerText = mode === 'area' ? '➕ Nueva Área' : '➕ Nuevo Responsable';
-    document.getElementById('addInput').value = '';
-    document.getElementById('addColor').value = '';
-    document.getElementById('addModal').classList.remove('hidden');
-  }
-  function closeAddModal(){ document.getElementById('addModal').classList.add('hidden'); }
-
-  function isHexColor(s){ return /^#([0-9A-F]{3}){1,2}$/i.test(s); }
-  async function saveAdd(){
-    const value = (document.getElementById('addInput').value || '').trim();
-    const pick = (document.getElementById('addColor').value || '').trim();
-    if(!value) return alert('Ingrese nombre válido');
-    
-    let success = false;
-    
-    if(addMode === 'area'){
-      const color = isHexColor(pick) ? pick : (function(){ const p = ['#06b6d4','#7c3aed','#ef4444','#f97316','#14b8a6','#0ea5e9','#a3e635','#f43f5e']; return p[Math.floor(Math.random()*p.length)]; })();
-      if(!areas.find(x=>x.nombre===value)) areas.push({ nombre: value, color });
-      try {
-        if(window.APP && typeof window.APP.saveAreas === 'function') await window.APP.saveAreas(areas);
-        renderAreasAndResps(); // Solo re-renderiza la selección
-        success = true;
-      } catch(e){ console.error('saveAreas', e); alert('Error guardando área'); }
-    } else {
-      if(!respons.includes(value)) respons.push(value);
-      try {
-        if(window.APP && typeof window.APP.saveRespons === 'function') await window.APP.saveRespons(respons);
-        renderAreasAndResps(); // Solo re-renderiza la selección
-        success = true;
-      } catch(e){ console.error('saveRespons', e); alert('Error guardando responsable'); }
-    }
-    
-    if (success) {
-      closeAddModal(); 
-      alert((addMode === 'area' ? 'Área' : 'Responsable') + ' guardado ✅');
-    }
-  }
-
-  /* ---------- Admin login ---------- */
-  document.getElementById('loginBtn').addEventListener('click', () => {
-    if(admin && document.getElementById('loginBtn').innerText === 'Cerrar sesión'){
-      if(confirm('¿Cerrar sesión de admin?')){
-        admin = false;
-        document.getElementById('adminBadge').classList.add('hidden');
-        document.getElementById('newTaskBtn').classList.add('hidden');
-        document.getElementById('statusAdmin').innerText = 'Usuario';
-        document.getElementById('loginBtn').innerText = '🔑 Ingresar Admin';
-        renderTable();
-      }
-      return;
-    }
-
-    const code = prompt('Ingrese código de administrador:');
-    if(code === 'william.oliva'){
-      admin = true;
-      document.getElementById('adminBadge').classList.remove('hidden');
-      document.getElementById('newTaskBtn').classList.remove('hidden');
-      document.getElementById('statusAdmin').innerText = 'ADMIN';
-      document.getElementById('loginBtn').innerText = 'Cerrar sesión';
-      alert('Acceso concedido ✅');
-      renderTable();
-    } else if(code === null){
-      // cancel
-    } else {
-      alert('Código incorrecto ❌');
-    }
-  });
-
-  // map newTaskBtn
-  document.getElementById('newTaskBtn').addEventListener('click', openCreateModal);
-
-  // Expose global functions used in HTML
-  window.openDetail = openDetail;
-  window.openAddModal = openAddModal;
-  window.openCreateModal = openCreateModal;
-  window.closeCreateModal = closeCreateModal;
-  window.closeAddModal = closeAddModal;
-  window.closeDetailModal = closeDetailModal;
-  window.saveAdd = saveAdd;
-  window.addComment = addComment;
-  window.renderNivelInputs = renderNivelInputs; 
-
-  // Boot
-  (async function boot(){
-    try {
-      await loadAll();
-      console.log('UI cargada y lista');
-    } catch(e){
-      console.error('Boot error', e);
-      alert('Error inicializando la app: ' + (e && e.message ? e.message : e));
-    }
-  })();
-
-})();
-</script>
+  </script>
 </body>
 </html>
+
