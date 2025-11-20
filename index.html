@@ -9,17 +9,15 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    /* Paleta premium */
     :root{
-      --bg:#0b1020;         /* fondo oscuro */
-      --card:#0f1724;       /* tarjetas */
+      --bg:#0b1020;
+      --card:#0f1724;
       --muted:#9ca3af;
-      --accent:#7c3aed;     /* morado principal */
-      --accent-2:#06b6d4;   /* cian */
-      --comisional:#10b981; /* verde para comisional */
-      --incentivos:#f97316; /* naranja para incentivos */
+      --accent:#7c3aed;
+      --accent-2:#06b6d4;
+      --comisional:#10b981;
+      --incentivos:#f97316;
     }
-
     html,body { background: linear-gradient(180deg,#070712 0%, var(--bg) 100%); color:#e6eef8; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
 
     .glass {
@@ -28,64 +26,32 @@
       backdrop-filter: blur(6px);
     }
 
-    /* Timeline */
-    .timeline {
-      position: relative;
-      padding: 2rem 0;
-    }
+    .timeline { position: relative; padding: 2rem 0; }
     .timeline::before{
-      content:'';
-      position:absolute;
-      left:50%;
-      transform:translateX(-50%);
-      width:4px;
-      height:100%;
-      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-      border-radius: 4px;
+      content:''; position:absolute; left:50%; transform:translateX(-50%); width:4px; height:100%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border-radius: 4px;
     }
 
-    /* central icon */
-    .node {
-      width:48px; height:48px; border-radius:999px;
-      display:flex; align-items:center; justify-content:center;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
-      transition: transform .28s ease, box-shadow .28s ease;
-      transform-origin:center center;
-    }
+    .node { width:48px; height:48px; border-radius:999px; display:flex; align-items:center; justify-content:center; box-shadow: 0 6px 18px rgba(0,0,0,0.6); transition: transform .28s ease, box-shadow .28s ease; transform-origin:center center; }
 
-    /* left/right card alignment */
-    .kpi-card {
-      width: calc(50% - 3.5rem);
-      padding: .75rem 1rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(2,6,23,0.6);
-      transition: transform .35s cubic-bezier(.2,.9,.25,1), opacity .35s ease, filter .35s ease;
-      transform-origin: left center;
-    }
+    .kpi-card { width: calc(50% - 3.5rem); padding: .75rem 1rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(2,6,23,0.6); transition: transform .35s cubic-bezier(.2,.9,.25,1), opacity .35s ease, filter .35s ease; transform-origin: left center; }
 
-    /* when node in view */
     .in-view { transform: scale(1.06); box-shadow: 0 12px 30px rgba(0,0,0,0.7); }
-
-    /* small / out of view */
     .out-view { transform: scale(.88); opacity:.6; filter: blur(.1px); }
 
-    /* alternate sides */
     .left-wrap { display:flex; justify-content:flex-end; gap:1rem; align-items:center; }
     .right-wrap { display:flex; justify-content:flex-start; gap:1rem; align-items:center; }
 
-    /* responsive tweaks */
     @media (max-width:640px){
       .kpi-card { width: calc(100% - 5rem); font-size: .95rem; }
-      .timeline::before { left: 48px; transform:none; } /* move vertical line right for mobile */
+      .timeline::before { left: 48px; transform:none; }
       .node { position: absolute; left: 24px; transform:none; }
       .left-wrap, .right-wrap { flex-direction: row; justify-content:flex-start; }
     }
 
-    /* nice transitions for entry */
     .reveal { transform: translateY(20px) scale(.96); opacity:0; transition: all .6s cubic-bezier(.2,.9,.25,1); }
     .reveal.show { transform: translateY(0) scale(1); opacity:1; }
 
-    /* header accent */
     .logo-accent { background: linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700; }
 
   </style>
@@ -102,15 +68,14 @@
 
     <!-- FILTERS -->
     <section class="mb-4 grid grid-cols-3 gap-3">
-      <select id="filterYear" class="glass p-2 rounded">
-        <!-- JS fills -->
-      </select>
-      <select id="filterMonth" class="glass p-2 rounded">
-        <!-- JS fills -->
-      </select>
-      <select id="filterZone" class="glass p-2 rounded">
-        <!-- JS fills -->
-      </select>
+      <select id="filterYear" class="glass p-2 rounded"></select>
+      <select id="filterMonth" class="glass p-2 rounded"></select>
+      <select id="filterZone" class="glass p-2 rounded"></select>
+    </section>
+
+    <!-- SELLER SELECTOR (added) -->
+    <section class="mb-4 grid grid-cols-1 gap-3">
+      <select id="sellerSelector" class="glass p-2 rounded"></select>
     </section>
 
     <!-- PROFILE -->
@@ -128,153 +93,222 @@
     </section>
 
     <!-- TIMELINE -->
-    <section id="timelineWrap" class="timeline relative">
-      <!-- JS will inject timeline items here -->
-    </section>
+    <section id="timelineWrap" class="timeline relative"></section>
 
-    <!-- footer hint -->
     <footer class="mt-6 text-center text-xs text-slate-500">Desliza hacia abajo para ver KPIs — diseñando para móviles.</footer>
   </main>
 
   <script>
-    /***** SAMPLE DATA (replace with your real data) *****/
-    const SAMPLE_ZONES = ['PE05028','PE05029','PE05030'];
-    const SAMPLE_YEARS = [2023,2024,2025];
-    const SAMPLE_MONTHS = [
-      {val:1,name:'Enero'},{val:2,name:'Febrero'},{val:3,name:'Marzo'},
-      {val:4,name:'Abril'},{val:5,name:'Mayo'},{val:6,name:'Junio'},
-      {val:7,name:'Julio'},{val:8,name:'Agosto'},{val:9,name:'Sept'},{val:10,name:'Oct'},{val:11,name:'Nov'},{val:12,name:'Dic'}
-    ];
-
-    const SAMPLE_DATA = {
-      // keyed by zone -> sellers list
-      'PE05028': [
-        {
-          id:1, photo:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=60&auto=format&fit=crop',
-          name:'Carlos Ruiz', birthday:'1989-06-15',
-          overall:82,
-          kpis: [
-            { id:'k1', side:'left', type:'comisional', title:'Cobertura PDV', value:'78%', desc:'Clientes visitados vs plan', icon:'⚑' },
-            { id:'k2', side:'right', type:'incentivos', title:'Venta X', value:'120%', desc:'Meta mensual', icon:'💰' },
-            { id:'k3', side:'left', type:'comisional', title:'Fotos subidas', value:'10/12', desc:'Evidencias', icon:'📸' },
-            { id:'k4', side:'right', type:'incentivos', title:'Upsell', value:'3', desc:'Nuevos SKUs', icon:'✨' }
-          ]
-        },
-        {
-          id:2, photo:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=802&q=60&auto=format&fit=crop',
-          name:'María Gómez', birthday:'1992-09-03',
-          overall:91,
-          kpis: [
-            { id:'k1', side:'left', type:'comisional', title:'Cobertura PDV', value:'88%', desc:'Clientes visitados vs plan', icon:'⚑' },
-            { id:'k2', side:'right', type:'incentivos', title:'Venta X', value:'110%', desc:'Meta mensual', icon:'💰' },
-            { id:'k3', side:'left', type:'incentivos', title:'Activación', value:'5', desc:'Promos realizadas', icon:'🎯' },
-          ]
-        }
-      ],
-      'PE05029': [
-        // other sellers
-      ]
-    };
-
-    /***** UI BOILERPLATE *****/
-    const el = sel => document.querySelector(sel);
-    const byId = id => document.getElementById(id);
-
-    // fill filters
-    function populateFilters(){
-      const fy = byId('filterYear');
-      SAMPLE_YEARS.forEach(y => {
-        const o = document.createElement('option'); o.value=y; o.textContent=y; fy.appendChild(o);
-      });
-      const fm = byId('filterMonth');
-      SAMPLE_MONTHS.forEach(m => { const o = document.createElement('option'); o.value=m.val; o.textContent=m.name; fm.appendChild(o); });
-      const fz = byId('filterZone');
-      SAMPLE_ZONES.forEach(z => { const o = document.createElement('option'); o.value=z; o.textContent=z; fz.appendChild(o); });
-      // default selects
-      fy.value = new Date().getFullYear();
-      fm.value = new Date().getMonth()+1;
-      fz.value = SAMPLE_ZONES[0];
+    /***** UTIL: resolver ruta foto *****/
+    function resolvePhotoPath(photoVal){
+      if(!photoVal || !photoVal.toString().trim()) return 'https://via.placeholder.com/96';
+      const s = photoVal.toString().trim();
+      // si comienza por http o // -> url absoluta
+      if(/^https?:\/\//i.test(s) || /^\/\//.test(s)) return s;
+      // si contiene carpeta (ej. img/) o path relativo ya, usar tal cual
+      if(s.indexOf('/') !== -1) return s;
+      // caso típico: sólo nombre archivo -> buscar en ./img/
+      return './img/' + s;
     }
 
-    // render profile & timeline for the first seller in zone
-    function renderForZone(zone){
-      const sellers = SAMPLE_DATA[zone] || [];
-      if(!sellers.length){
-        byId('profile').classList.add('hidden');
-        byId('timelineWrap').innerHTML = `<div class="text-center text-sm text-slate-400 py-8">No hay datos para ${zone}</div>`;
-        return;
+    /***** Leer JSON dinámicamente (cierres.json) *****/
+    async function loadData(){
+      try {
+        const resp = await fetch('./cierres.json', {cache: "no-store"});
+        if(!resp.ok) throw new Error('HTTP ' + resp.status + ' al leer cierres.json. Asegúrate que el archivo existe y que sirves la página desde un servidor (no file://).');
+        const data = await resp.json();
+        if(!data || !Array.isArray(data.cierres)) throw new Error('Formato JSON inválido: se espera objeto con array "cierres".');
+        return data.cierres;
+      } catch (err) {
+        console.error(err);
+        const wrap = document.getElementById('timelineWrap');
+        wrap.innerHTML = `<div class="text-center text-sm text-slate-400 py-8">Error leyendo cierres.json: ${err.message}</div>`;
+        throw err;
       }
-      // pick first seller for now (could be selector)
-      const seller = sellers[0];
-      byId('sellerPhoto').src = seller.photo;
-      byId('sellerName').textContent = seller.name;
-      byId('sellerBday').textContent = `Cumpleaños: ${new Date(seller.birthday).toLocaleDateString()}`;
-      byId('sellerZone').textContent = zone;
-      byId('sellerOverall').textContent = seller.overall + '%';
+    }
 
-      // build timeline items
-      const wrap = byId('timelineWrap');
-      wrap.innerHTML = ''; // reset
-      // create spaced items
-      seller.kpis.forEach((k, idx) => {
-        const item = createTimelineItem(k, idx);
-        wrap.appendChild(item);
+    /***** Transformar lista plana en estructura por zona -> vendedores[] *****/
+    function buildIndex(cierres){
+      const index = { zones: {}, years: new Set(), months: new Set() };
+      cierres.forEach(item => {
+        // normalizar valores
+        const zona = item.zona ? item.zona.toString() : 'SinZona';
+        const nombre = item.nombre ? item.nombre.toString() : 'SinNombre';
+        const tipo = item.tipo ? item.tipo.toString() : '';
+        const mes = item.mes ? item.mes.toString() : '';
+        // mes esperado formato YYYYMM o YYYYMM (ej. 202510)
+        if(mes.length >= 6){
+          const year = mes.substring(0,4);
+          const month = parseInt(mes.substring(4,6),10);
+          if(!isNaN(year)) index.years.add(year);
+          if(!isNaN(month)) index.months.add(month);
+        }
+        // agrupar por zona y luego por vendedor (por nombre)
+        if(!index.zones[zona]) index.zones[zona] = {};
+        const sellersByName = index.zones[zona];
+        // usar key por nombre + tipo por si hay duplicados
+        const sellerKey = nombre + '||' + tipo;
+        if(!sellersByName[sellerKey]){
+          sellersByName[sellerKey] = {
+            nombre: nombre,
+            tipo: tipo,
+            foto: item.foto || '',
+            zona: zona,
+            overall: item.puntaje || 0,
+            kpis: []
+          };
+        } else {
+          // si hay foto en este registro y no estaba en el seller, setearla
+          if(!sellersByName[sellerKey].foto && item.foto) sellersByName[sellerKey].foto = item.foto;
+        }
+        // construir KPI object desde campos del registro
+        const kpiObj = {
+          id: (item.kpi ? item.kpi.toString().replace(/\s+/g,'_') : 'kpi_' + Math.random().toString(36).slice(2,8)),
+          title: item.kpi || 'KPI',
+          value: (item.puntaje !== undefined && item.puntaje !== null) ? (item.puntaje + (typeof item.puntaje === 'number' ? '%' : '')) : (item.alcance !== undefined ? String(item.alcance) : ''),
+          desc: '', // puedes enriquecer con otros campos si los agregas al JSON
+          type: item.candado ? 'incentivos' : 'comisional',
+          raw: item
+        };
+        // push KPI
+        sellersByName[sellerKey].kpis.push(kpiObj);
       });
 
-      // after DOM built, wire observer
+      // convertir sellers map a arrays para consumirse desde la UI
+      const zones = {};
+      for(const z in index.zones){
+        zones[z] = Object.values(index.zones[z]);
+      }
+      // convert sets to sorted arrays
+      index.years = Array.from(index.years).sort((a,b)=>b-a);
+      index.months = Array.from(index.months).sort((a,b)=>a-b);
+
+      return { zones, years: index.years, months: index.months };
+    }
+
+    /***** UI: populadores *****/
+    function populateFiltersFromIndex(idx){
+      const fy = document.getElementById('filterYear');
+      const fm = document.getElementById('filterMonth');
+      const fz = document.getElementById('filterZone');
+
+      fy.innerHTML = ''; fm.innerHTML = ''; fz.innerHTML = '';
+
+      // years
+      if(idx.years.length){
+        idx.years.forEach(y => {
+          const o = document.createElement('option'); o.value = y; o.textContent = y; fy.appendChild(o);
+        });
+      } else {
+        const o = document.createElement('option'); o.value = new Date().getFullYear(); o.textContent = new Date().getFullYear(); fy.appendChild(o);
+      }
+
+      // months (map to names)
+      const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Sept','Oct','Nov','Dic'];
+      if(idx.months.length){
+        idx.months.forEach(m => {
+          const o = document.createElement('option'); o.value = m; o.textContent = MONTHS[m-1] || m; fm.appendChild(o);
+        });
+      } else {
+        const m = new Date().getMonth()+1;
+        const o = document.createElement('option'); o.value = m; o.textContent = MONTHS[m-1]; fm.appendChild(o);
+      }
+
+      // zones
+      const zonesList = Object.keys(idx.zones).sort();
+      if(zonesList.length === 0){
+        const o = document.createElement('option'); o.value='SinZona'; o.textContent='SinZona'; fz.appendChild(o);
+      } else {
+        zonesList.forEach(z => {
+          const o = document.createElement('option'); o.value = z; o.textContent = z; fz.appendChild(o);
+        });
+      }
+    }
+
+    function populateSellerSelector(sellers){
+      const sel = document.getElementById('sellerSelector');
+      sel.innerHTML = '';
+      sellers.forEach((s,i) => {
+        const o = document.createElement('option');
+        o.value = i; o.textContent = s.nombre + (s.tipo ? ' ('+s.tipo+')' : '');
+        sel.appendChild(o);
+      });
+    }
+
+    /***** RENDER *****/
+    function renderForZoneAndSeller(zonesIndex, zone, sellerIndex){
+      const sellers = zonesIndex[zone] || [];
+      if(!sellers.length){
+        document.getElementById('profile').classList.add('hidden');
+        document.getElementById('timelineWrap').innerHTML = `<div class="text-center text-sm text-slate-400 py-8">No hay datos para ${zone}</div>`;
+        return;
+      }
+      document.getElementById('profile').classList.remove('hidden');
+
+      const seller = sellers[sellerIndex || 0];
+      // profile
+      document.getElementById('sellerPhoto').src = resolvePhotoPath(seller.foto);
+      document.getElementById('sellerName').textContent = seller.nombre;
+      document.getElementById('sellerBday').textContent = 'Cumpleaños: --/--/----'; // si tienes campo birthday en JSON, reemplaza
+      document.getElementById('sellerZone').textContent = seller.zona || zone;
+      document.getElementById('sellerOverall').textContent = (seller.overall || 0) + '%';
+
+      // timeline
+      const wrap = document.getElementById('timelineWrap');
+      wrap.innerHTML = '';
+      // alternate left/right for nice layout
+      seller.kpis.forEach((kpi, idx) => {
+        const item = createTimelineItem(kpi, idx);
+        wrap.appendChild(item);
+      });
       initObservers();
     }
 
-    // helper: create timeline DOM node
     function createTimelineItem(kpi, idx){
       const container = document.createElement('div');
       container.className = 'mb-8 relative reveal';
       container.style.zIndex = 10;
 
-      // wrapper to hold left/right card + node
       const inner = document.createElement('div');
-      inner.className = kpi.side === 'left' ? 'left-wrap items-center' : 'right-wrap items-center';
+      // alternate sides simple rule
+      const side = (idx % 2 === 0) ? 'left' : 'right';
+      inner.className = side === 'left' ? 'left-wrap items-center' : 'right-wrap items-center';
 
-      // create card
       const card = document.createElement('div');
       card.className = 'kpi-card glass';
       card.innerHTML = `
         <div class="flex items-start gap-3">
           <div>
-            <div class="text-xs text-slate-400">${kpi.title}</div>
-            <div class="text-lg font-semibold mt-1">${kpi.value}</div>
-            <div class="text-xs text-slate-400 mt-2">${kpi.desc}</div>
+            <div class="text-xs text-slate-400">${escapeHtml(kpi.title)}</div>
+            <div class="text-lg font-semibold mt-1">${escapeHtml(kpi.value)}</div>
+            <div class="text-xs text-slate-400 mt-2">${escapeHtml(kpi.desc || '')}</div>
           </div>
         </div>
       `;
 
-      // style card by type
       if(kpi.type === 'comisional'){
         card.style.borderLeft = '4px solid '+getComputedStyle(document.documentElement).getPropertyValue('--comisional');
       } else {
         card.style.borderLeft = '4px solid '+getComputedStyle(document.documentElement).getPropertyValue('--incentivos');
       }
 
-      // node (icon circle)
       const node = document.createElement('div');
       node.className = 'node glass';
-      node.innerHTML = `<div style="font-size:18px">${kpi.icon}</div>`;
-      // color node background by type
+      node.innerHTML = `<div style="font-size:18px">${kpi.icon || '⚑'}</div>`;
+
       if(kpi.type === 'comisional'){
         node.style.background = 'linear-gradient(90deg,var(--comisional),rgba(16,185,129,.9))';
       } else {
         node.style.background = 'linear-gradient(90deg,var(--incentivos),rgba(249,115,22,.9))';
       }
 
-      // arrangement: on mobile, node is left (absolute) and card flows below; elsewhere alternate left/right
       if(window.innerWidth <= 640){
-        // mobile: node absolute on left; card full width
         node.style.position = 'absolute'; node.style.left = '8px'; node.style.top = '0';
         card.style.marginLeft = '3.5rem';
         inner.appendChild(card);
         inner.appendChild(node);
       } else {
-        if(kpi.side === 'left'){
+        if(side === 'left'){
           inner.appendChild(card);
           inner.appendChild(node);
         } else {
@@ -287,22 +321,25 @@
       return container;
     }
 
-    // observe reveal + node in-view scaling
+    // small helper to prevent XSS if any text came from external JSON
+    function escapeHtml(str){
+      if(str === null || str === undefined) return '';
+      return String(str).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
+    }
+
+    // observer for reveal effects
     function initObservers(){
       const reveals = document.querySelectorAll('.reveal');
-      const options = { root:null, rootMargin: '0px', threshold: .2 };
+      const options = { root:null, rootMargin:'0px', threshold:.2 };
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(ent => {
           if(ent.isIntersecting){
             ent.target.classList.add('show');
-            // scale up nodes inside
-            const node = ent.target.querySelector('.node');
-            if(node) node.classList.add('in-view');
+            const node = ent.target.querySelector('.node'); if(node) node.classList.add('in-view');
             ent.target.classList.remove('out-view');
           } else {
             ent.target.classList.remove('show');
-            const node = ent.target.querySelector('.node');
-            if(node) node.classList.remove('in-view');
+            const node = ent.target.querySelector('.node'); if(node) node.classList.remove('in-view');
             ent.target.classList.add('out-view');
           }
         });
@@ -310,39 +347,59 @@
       reveals.forEach(r => observer.observe(r));
     }
 
-    // helper to get CSS var
-    function cssVar(name){
-      return getComputedStyle(document.documentElement).getPropertyValue(name);
-    }
-    // polyfill for color retrieval used earlier
-    // wire filters
-    function wireFilters(){
-      byId('filterZone').addEventListener('change', (e)=> {
-        renderForZone(e.target.value);
+    /***** BOOTSTRAP: carga datos y arma UI *****/
+    (async function init(){
+      let cierres;
+      try {
+        cierres = await loadData();
+      } catch(e){
+        // error ya mostrado en loadData
+        return;
+      }
+      const idx = buildIndex(cierres);
+      populateFiltersFromIndex(idx);
+
+      // wire filters
+      document.getElementById('filterZone').addEventListener('change', (e) => {
+        const zone = e.target.value;
+        const sellers = idx.zones[zone] || [];
+        populateSellerSelector(sellers);
+        // default to first seller
+        renderForZoneAndSeller(idx.zones, zone, 0);
       });
 
-      // optional: change year/month triggers reload if you implement data backend
-      byId('filterYear').addEventListener('change', ()=> {/* TODO */});
-      byId('filterMonth').addEventListener('change', ()=> {/* TODO */});
-    }
+      document.getElementById('sellerSelector').addEventListener('change', (e) => {
+        const zone = document.getElementById('filterZone').value;
+        renderForZoneAndSeller(idx.zones, zone, parseInt(e.target.value,10));
+      });
 
-    // init
-    (function init(){
-      populateFilters();
-      wireFilters();
-      renderForZone(byId('filterZone').value);
-      // subtle scroll behavior
-      document.documentElement.style.scrollBehavior = 'smooth';
+      // initial render: select first zone
+      const firstZone = Object.keys(idx.zones)[0];
+      if(firstZone){
+        document.getElementById('filterZone').value = firstZone;
+        const sellers = idx.zones[firstZone];
+        populateSellerSelector(sellers);
+        renderForZoneAndSeller(idx.zones, firstZone, 0);
+      } else {
+        document.getElementById('timelineWrap').innerHTML = `<div class="text-center text-sm text-slate-400 py-8">No hay registros en cierres.json</div>`;
+      }
+
+      // wire year/month change handlers if necesitas filtrar por mes/año (no implementado filtrado profundo por ahora)
+      document.getElementById('filterYear').addEventListener('change', ()=>{/* opcional */});
+      document.getElementById('filterMonth').addEventListener('change', ()=>{/* opcional */});
     })();
 
-    // handle resize to re-render for responsive placement
+    // re-render on resize for layout adjustments
     let resizeTO;
     window.addEventListener('resize', ()=> {
       clearTimeout(resizeTO);
-      resizeTO = setTimeout(()=> renderForZone(byId('filterZone').value), 240);
+      resizeTO = setTimeout(()=> {
+        const zone = document.getElementById('filterZone').value;
+        const sellerIdx = document.getElementById('sellerSelector').value || 0;
+        // si idx disponible en memoria: recomponer desde DOM
+        if(zone) renderForZoneAndSeller(window.__zonesIndex || {}, zone, parseInt(sellerIdx,10));
+      }, 220);
     });
-
   </script>
 </body>
 </html>
-
