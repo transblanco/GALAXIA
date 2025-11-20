@@ -19,26 +19,35 @@
     html,body { background: linear-gradient(180deg,#070712 0%, var(--bg) 100%); color:#e6eef8; font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
     .glass { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015)); border: 1px solid rgba(255,255,255,0.04); backdrop-filter: blur(6px); }
 
-    /* Fix for selects: make dropdown readable by using light background and dark text */
-    select.filter-select { background: rgba(255,255,255,0.95); color: #0b1020; padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); }
+    /* Select styles so options are readable on dark bg */
+    select.filter-select { background: #ffffff; color: #0b1020; padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); appearance: none; -webkit-appearance: none; }
     select.filter-select option { color:#0b1020; }
 
+    /* Layout */
     .timeline { position: relative; padding: 2rem 0; }
     .timeline::before{ content:''; position:absolute; left:50%; transform:translateX(-50%); width:4px; height:100%; background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border-radius: 4px; }
     .node { width:48px; height:48px; border-radius:999px; display:flex; align-items:center; justify-content:center; box-shadow: 0 6px 18px rgba(0,0,0,0.6); transition: transform .28s ease, box-shadow .28s ease; transform-origin:center center; }
     .kpi-card { width: calc(50% - 3.5rem); padding: .75rem 1rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(2,6,23,0.6); transition: transform .35s, opacity .35s; transform-origin: left center; background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(0,0,0,0.02)); }
-    .in-view { transform: scale(1.06); box-shadow: 0 12px 30px rgba(0,0,0,0.7); }
-    .out-view { transform: scale(.88); opacity:.6; filter: blur(.1px); }
     .left-wrap { display:flex; justify-content:flex-end; gap:1rem; align-items:center; }
     .right-wrap { display:flex; justify-content:flex-start; gap:1rem; align-items:center; }
+
     @media (max-width:640px){ .kpi-card { width: calc(100% - 5rem); font-size: .95rem; } .timeline::before { left: 48px; transform:none; } .node { position: absolute; left: 24px; transform:none; } .left-wrap, .right-wrap { flex-direction: row; justify-content:flex-start; } }
-    .reveal { transform: translateY(20px) scale(.96); opacity:0; transition: all .6s cubic-bezier(.2,.9,.25,1); }
-    .reveal.show { transform: translateY(0) scale(1); opacity:1; }
+
+    /* Simple fade-in on load (no IntersectionObserver to avoid scroll jumps) */
+    .fade-in { opacity:0; transform: translateY(12px); transition: opacity .45s ease, transform .45s ease; }
+    .fade-in.show { opacity:1; transform: translateY(0); }
+
     .logo-accent { background: linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700; }
     .badge-orange { color: #fff; background: var(--orange); padding:4px 8px; border-radius:999px; font-weight:600; font-size:.78rem; }
     .puntaje-high { font-weight:800; font-size:1.1rem; color:#fff; background: linear-gradient(90deg, rgba(124,58,237,0.12), rgba(6,182,212,0.06)); padding:6px 8px; border-radius:8px; display:inline-block; }
     .cierren-box { display:flex; gap:1rem; align-items:center; justify-content:space-between; padding:.6rem .8rem; border-radius:10px; background: linear-gradient(90deg, rgba(124,58,237,0.06), rgba(6,182,212,0.02)); border:1px solid rgba(124,58,237,0.08); }
     .lock-icon { font-size:14px; vertical-align:middle; margin-right:6px; }
+
+    /* Header adjustments for larger photo and alignment */
+    .header-main { display:flex; align-items:center; gap:1rem; justify-content:space-between; }
+    .header-photo { width:120px; height:120px; border-radius:999px; object-fit:cover; flex-shrink:0; }
+    @media (max-width:640px){ .header-photo { width:96px; height:96px; } }
+
   </style>
 </head>
 <body>
@@ -55,17 +64,29 @@
       <select id="filterZone" class="filter-select"></select>
     </section>
 
-    <!-- PROFILE / ZONE SUMMARY -->
-    <section id="profile" class="glass p-3 rounded mb-4 flex items-center gap-3">
-      <img id="sellerPhoto" src="https://via.placeholder.com/96" alt="vendedor" class="w-20 h-20 rounded-full object-cover ring-2 ring-white/10 shadow-sm" />
-      <div class="flex-1">
-        <div id="sellerName" class="text-lg font-semibold">Zona / Selector</div>
-        <div id="sellerRole" class="text-sm text-slate-400 mt-1">Rol: --</div>
-        <div class="text-xs text-slate-400 mt-2">Zona: <span id="sellerZone">--</span></div>
+    <!-- HEADER TARGET: Larger photo + CIERRE only -->
+    <section id="headerTarget" class="glass p-4 rounded mb-4">
+      <div class="header-main">
+        <img id="mainPhoto" class="header-photo" src="https://via.placeholder.com/120" alt="foto" />
+        <div style="flex:1"></div>
+        <div style="text-align:right">
+          <div class="text-xs text-slate-400">CIERRE COMISIONAL</div>
+          <div id="cierreComisional" class="text-3xl font-extrabold mt-1">0.00%</div>
+        </div>
       </div>
-      <div style="min-width:170px; text-align:right;">
-        <div class="text-xs text-slate-400">CIERRE COMISIONAL:</div>
-        <div id="cierreComisional" class="text-2xl font-extrabold text-white">0.00%</div>
+    </section>
+
+    <!-- Seller small target (moved below) -->
+    <section id="profile" class="glass p-3 rounded mb-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <div id="sellerName" class="text-lg font-semibold">Nombre Vendedor</div>
+          <div id="sellerRole" class="text-sm text-slate-400 mt-1">Rol: --</div>
+          <div class="text-xs text-slate-400 mt-2">Zona: <span id="sellerZone">--</span></div>
+        </div>
+        <div style="min-width:120px; text-align:right">
+          <!-- reserved for small stats if needed -->
+        </div>
       </div>
     </section>
 
@@ -79,7 +100,7 @@
     // helper: escape html
     function escapeHtml(s){ if(s===undefined||s===null) return ''; return String(s).replace(/[&<>"]+/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[m]); }
 
-    function resolvePhotoPath(photoVal){ if(!photoVal) return 'https://via.placeholder.com/96'; const s = String(photoVal).trim(); if(/^https?:\/\//i.test(s) || /^\/\//.test(s)) return s; if(s.indexOf('/') !== -1) return s; return './img/' + s; }
+    function resolvePhotoPath(photoVal){ if(!photoVal) return 'https://via.placeholder.com/120'; const s = String(photoVal).trim(); if(/^https?:\/\//i.test(s) || /^\/\//.test(s)) return s; if(s.indexOf('/') !== -1) return s; return './img/' + s; }
 
     async function loadData(){
       try{
@@ -87,7 +108,6 @@
         if(!r.ok) throw new Error('HTTP ' + r.status + ' al leer cierres.json');
         const j = await r.json();
         if(!j || !Array.isArray(j.cierres)) throw new Error('Formato inválido: se espera {"cierres":[...]}');
-        // Ensure year/month fields exist by extracting from mes if needed
         j.cierres.forEach(it=>{
           if((it.year === undefined || it.month === undefined) && it.mes){
             const mstr = String(it.mes);
@@ -102,15 +122,16 @@
       } catch(e){ document.getElementById('timelineWrap').innerHTML = `<div class="text-center text-sm text-slate-400 py-8">Error leyendo cierres.json: ${escapeHtml(e.message)}</div>`; throw e; }
     }
 
+    // Alcance and alcance_kpi -> percent display (multiply 0..1 by 100)
     function toPercentDisplay(v){ if(v === null || v === undefined || v === '') return ''; const n = Number(v); if(isNaN(n)) return String(v); const val = (n > 0 && n <= 1) ? n * 100 : (n * 100); const rounded = Math.round(val * 100) / 100; return rounded + '%'; }
     function normalizeNumericForSum(v){ if(v === null || v === undefined || v === '') return NaN; const n = Number(v); if(isNaN(n)) return NaN; return (n > 0 && n <= 1) ? n * 100 : (n * 100); }
 
+    // Build filtered index by year/month/zone (exact match)
     function buildFilteredIndex(cierres, yearFilter, monthFilter, zoneFilter){
       const filtered = cierres.filter(it=>{
         if(zoneFilter && String(it.zona||'') !== String(zoneFilter)) return false;
         if(yearFilter && it.year !== undefined){ if(String(it.year) !== String(yearFilter)) return false; }
         if(monthFilter && it.month !== undefined){ if(Number(it.month) !== Number(monthFilter)) return false; }
-        // if year/month absent but mes present, already extracted in loadData
         return true;
       });
 
@@ -128,15 +149,14 @@
       return { filtered, zones: zonesArr };
     }
 
-    // Sum all puntajes in the filtered set (regardless of candado)
+    // compute cierre comisional: SUM of raw puntaje values WITHOUT multiplying by 100
     function computeCierreComisional(records){
       let sum = 0;
       records.forEach(it=>{
         if(it.puntaje !== undefined && it.puntaje !== null && String(it.puntaje).trim() !== ''){
           const raw = Number(it.puntaje);
           if(!isNaN(raw)){
-            const normalized = (raw > 0 && raw <= 1) ? raw * 100 : (raw * 100);
-            if(!isNaN(normalized)) sum += normalized;
+            sum += raw; // no multiplication
           }
         }
       });
@@ -160,8 +180,9 @@
           alcance_candado_num: (it.alcance_candado !== undefined) ? normalizeNumericForSum(it.alcance_candado) : NaN,
           meta_candado_num: (it.meta_candado !== undefined) ? normalizeNumericForSum(it.meta_candado) : NaN,
           cumplio_candado: (it.candado && !isNaN(Number(it.alcance_candado)) && !isNaN(Number(it.meta_candado))) ? (Number(it.alcance_candado) >= Number(it.meta_candado)) : null,
-          puntaje_display: (it.puntaje !== undefined && it.puntaje !== null) ? toPercentDisplay(it.puntaje) : '',
-          puntaje_num: (it.puntaje !== undefined && it.puntaje !== null) ? normalizeNumericForSum(it.puntaje) : NaN,
+          // PUNTAJE: DO NOT multiply by 100 — show as-is
+          puntaje_display: (it.puntaje !== undefined && it.puntaje !== null) ? (isNaN(Number(it.puntaje)) ? String(it.puntaje) : Number(it.puntaje)) : '',
+          puntaje_num: (it.puntaje !== undefined && it.puntaje !== null) ? Number(it.puntaje) : NaN,
           raw: it
         };
         const titleUpper = title.toUpperCase().trim();
@@ -171,34 +192,41 @@
       return final;
     }
 
+    // render zone UI
     function renderZoneUI(zoneName, sellersArray, allFilteredRecords){
       const wrap = document.getElementById('timelineWrap'); wrap.innerHTML = '';
       if(!sellersArray || sellersArray.length === 0){ wrap.innerHTML = `<div class="text-center text-sm text-slate-400 py-8">No hay datos para la combinación seleccionada.</div>`; return; }
 
+      // header photo and cierre
       const rep = sellersArray[0];
-      document.getElementById('sellerPhoto').src = resolvePhotoPath(rep.foto);
-      document.getElementById('sellerName').textContent = zoneName + ' — ' + (rep.nombre || '');
+      document.getElementById('mainPhoto').src = resolvePhotoPath(rep.foto);
+
+      const cierre = computeCierreComisional(allFilteredRecords || []);
+      // Show cierre as-is; if greater than 0 show with % if most values are percent-like — we'll append '%' if sum > 1
+      const cierreText = (isNaN(cierre) ? '0.00' : cierre.toFixed(2)) + (Math.abs(cierre) > 1 ? '%' : '');
+      document.getElementById('cierreComisional').textContent = cierreText;
+
+      // small profile below
+      document.getElementById('sellerName').textContent = rep.nombre || 'Sin nombre';
       const hasVendedor = sellersArray.some(s => String(s.tipo || '').toLowerCase().indexOf('vendedor') >= 0);
       const role = hasVendedor ? 'EJECUTIVO COMERCIAL' : (sellersArray[0].tipo || '').toUpperCase() || '--';
       document.getElementById('sellerRole').textContent = 'Rol: ' + role;
       document.getElementById('sellerZone').textContent = zoneName;
 
-      const cierre = computeCierreComisional(allFilteredRecords || []);
-      document.getElementById('cierreComisional').textContent = (isNaN(cierre) ? '0.00%' : cierre.toFixed(2) + '%');
-
       sellersArray.forEach((seller, sIdx) => {
         const sellerHeader = document.createElement('div');
-        sellerHeader.className = 'glass p-3 rounded mb-4';
+        sellerHeader.className = 'glass p-3 rounded mb-4 fade-in';
         sellerHeader.innerHTML = `<div class="flex items-center justify-between"><div><div class="font-semibold">${escapeHtml(seller.nombre)}</div><div class="text-xs text-slate-400">${escapeHtml(seller.tipo || '')}</div></div><div class="text-sm text-slate-400">Zona: ${escapeHtml(seller.zona)}</div></div>`;
         wrap.appendChild(sellerHeader);
 
         const kpis = createTimelineFromRecords(seller.records);
         kpis.forEach((kpi, idx) => {
-          const container = document.createElement('div'); container.className = 'mb-8 relative reveal'; container.style.zIndex = 10;
+          const container = document.createElement('div'); container.className = 'mb-8 relative fade-in';
           const side = (idx % 2 === 0) ? 'left' : 'right'; const inner = document.createElement('div'); inner.className = side === 'left' ? 'left-wrap items-center' : 'right-wrap items-center';
           const card = document.createElement('div'); card.className = 'kpi-card glass';
+
           const upperTitle = kpi.title.toUpperCase().trim();
-          let isOrange = (upperTitle === 'ADHERENCIA DE PRECIO' || upperTitle === 'MISIONES DE CREACIÓN DE VALOR' || upperTitle === 'MISIONES DE EJECUCIÓN + DIGITALES');
+          const isOrange = (upperTitle === 'ADHERENCIA DE PRECIO' || upperTitle === 'MISIONES DE CREACIÓN DE VALOR' || upperTitle === 'MISIONES DE EJECUCIÓN + DIGITALES');
           if(isOrange) card.style.borderLeft = '4px solid var(--orange)'; else if(kpi.candado) card.style.borderLeft = '4px solid var(--incentivos)'; else card.style.borderLeft = '4px solid var(--comisional)';
 
           let innerHTML = `<div class="flex items-start gap-3"><div style="flex:1">`;
@@ -206,8 +234,16 @@
           innerHTML += `<div class="text-sm mt-1">ALCANCE: <strong>${escapeHtml(kpi.alcance || '')}</strong></div>`;
           innerHTML += `<div class="text-sm mt-1">ALCANCE-KPI: <strong>${escapeHtml(kpi.alcance_kpi || '')}</strong></div>`;
           if(kpi.candado){ const cumplio = (kpi.cumplio_candado === true) ? 'SI' : (kpi.cumplio_candado === false ? 'NO' : 'N/A'); const lockIcon = (kpi.cumplio_candado === true) ? '🔓' : (kpi.cumplio_candado === false ? '🔒' : '🔐'); innerHTML += `<div class="text-sm mt-2">CANDADO: <span class="text-slate-100 font-medium">${escapeHtml(kpi.candado)}</span></div>`; innerHTML += `<div class="flex items-center text-sm mt-1"><span class="lock-icon">${lockIcon}</span>CUMPLIÓ: <strong style="margin-left:6px">${cumplio}</strong></div>`; }
-          innerHTML += `<div class="mt-3">PUNTAJE: <span class="puntaje-high">${escapeHtml(kpi.puntaje_display || '')}</span></div>`;
-          innerHTML += `</div></div>`; card.innerHTML = innerHTML;
+          // PUNTAJE: show raw value (no extra multiplication). Append % only if value > 1 (most likely already percent)
+          let puntText = '';
+          if(kpi.puntaje_display !== null && kpi.puntaje_display !== undefined && kpi.puntaje_display !== ''){
+            const num = Number(kpi.puntaje_display);
+            if(!isNaN(num)) puntText = (Math.abs(num) > 1 ? num.toFixed(2) + '%' : num.toFixed(2));
+            else puntText = String(kpi.puntaje_display);
+          }
+          innerHTML += `<div class="mt-3">PUNTAJE: <span class="puntaje-high">${escapeHtml(puntText)}</span></div>`;
+          innerHTML += `</div></div>`;
+          card.innerHTML = innerHTML;
 
           const node = document.createElement('div'); node.className = 'node glass'; node.innerHTML = `<div style="font-size:18px">${kpi.candado ? '🔒' : '⚑'}</div>`;
           if(isOrange) node.style.background = 'linear-gradient(90deg,var(--orange),rgba(249,115,22,.9))'; else if(kpi.candado) node.style.background = 'linear-gradient(90deg,var(--incentivos),rgba(249,115,22,.9))'; else node.style.background = 'linear-gradient(90deg,var(--comisional),rgba(16,185,129,.9))';
@@ -217,11 +253,14 @@
           container.appendChild(inner); wrap.appendChild(container);
         });
       });
-      initObservers();
+
+      // simple fade-in after short delay to avoid heavy observers
+      setTimeout(()=>{
+        document.querySelectorAll('.fade-in').forEach(el=>el.classList.add('show'));
+      }, 60);
     }
 
-    function initObservers(){ const reveals = document.querySelectorAll('.reveal'); const options = { root:null, rootMargin:'0px', threshold:.15 }; const observer = new IntersectionObserver((entries)=>{ entries.forEach(ent=>{ if(ent.isIntersecting){ ent.target.classList.add('show'); const node = ent.target.querySelector('.node'); if(node) node.classList.add('in-view'); ent.target.classList.remove('out-view'); } else { ent.target.classList.remove('show'); const node = ent.target.querySelector('.node'); if(node) node.classList.remove('in-view'); ent.target.classList.add('out-view'); } }); }, options); reveals.forEach(r=>observer.observe(r)); }
-
+    // populate filters
     function populateFiltersFromData(cierres){
       const fy = document.getElementById('filterYear'); const fm = document.getElementById('filterMonth'); const fz = document.getElementById('filterZone'); fy.innerHTML = ''; fm.innerHTML = ''; fz.innerHTML = '';
       const years = new Set(); const months = new Set(); const zones = new Set();
@@ -237,7 +276,7 @@
       const yearSel = document.getElementById('filterYear'); const monthSel = document.getElementById('filterMonth'); const zoneSel = document.getElementById('filterZone');
       function renderAll(){ const y = yearSel.value; const m = monthSel.value; const z = zoneSel.value; const idx = buildFilteredIndex(cierres, y, m, z); const sellersArray = idx.zones[z] || []; renderZoneUI(z, sellersArray, idx.filtered.filter(it=> String(it.zona||'') === String(z))); }
       yearSel.addEventListener('change', renderAll); monthSel.addEventListener('change', renderAll); zoneSel.addEventListener('change', renderAll);
-      renderAll(); let to; window.addEventListener('resize', ()=>{ clearTimeout(to); to = setTimeout(()=>{ renderAll(); }, 220); });
+      renderAll(); window.addEventListener('resize', ()=>{ setTimeout(()=>{ renderAll(); }, 220); });
     })();
   </script>
 </body>
